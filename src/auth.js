@@ -6,8 +6,8 @@
 // 4. ሁሉንም መረጃ በትክክል ይምሉ (Telegram Bot OTP Verification with Sky Blue theme)
 
 import { el, clear, showToast } from './main.js';
-import { simpleHash, loadPrefs, savePrefs, loadData, saveLocal, freshLocations, freshEmptyData, toInternationalPhone, normalizePhone } from './core.js';
-import { saveUserToFirestore, saveShopToFirestore, fetchUserFromFirestore, fetchShopFromFirestore, fetchSalesByStoreId, fetchInventoryByStoreId, fetchExpensesByStoreId, withTimeout, db, doc, setDoc } from './firebase.js';
+import { simpleHash, loadPrefs, savePrefs, loadData, saveLocal, freshLocations, freshEmptyData, toInternationalPhone, normalizePhone, normalizePhoneNumber } from './core.js';
+import { saveUserToFirestore, saveShopToFirestore, fetchUserFromFirestore, fetchShopFromFirestore, fetchSalesByStoreId, fetchInventoryByStoreId, fetchExpensesByStoreId, withTimeout, db, doc, setDoc, checkIfUserExistsInFirestore } from './firebase.js';
 
 export var TELEGRAM_BOT_TOKEN = "8617451852:AAFUpPpaai7M1meuMN025WHokFI4lUanbWg";
 export var TELEGRAM_BOT_USERNAME = "GrposBot";
@@ -15,8 +15,9 @@ export var TELEGRAM_BOT_LINK = "tg://resolve?domain=" + TELEGRAM_BOT_USERNAME + 
 
 // Auth session state
 var authState = {
-  currentScreen: "login", // "login" | "register" | "verify"
+  currentScreen: "login", // "login" | "register" | "verify" | "reset_password"
   showSeniyaLogo: true,
+  isForgotPassword: false,
   regData: {
     orgName: "",
     fullName: "",
@@ -113,7 +114,12 @@ export function buildAuthContainer(options) {
     } else if (authState.currentScreen === "verify") {
       container.appendChild(renderVerifyScreen(onComplete, onBack, renderCurrentView));
     } else if (authState.currentScreen === "reset_password") {
-      container.appendChild(renderResetPasswordScreen(onComplete, onBack, renderCurrentView));
+      if (!authState.isForgotPassword) {
+        authState.currentScreen = "login";
+        container.appendChild(renderLoginScreen(onComplete, onBack, renderCurrentView));
+      } else {
+        container.appendChild(renderResetPasswordScreen(onComplete, onBack, renderCurrentView));
+      }
     }
   }
 
@@ -659,6 +665,7 @@ function renderLoginScreen(onComplete, onBack, rerender) {
   var registerLink = el("button", {
     class: "canva-link-btn-alt",
     onclick: function () {
+      authState.isForgotPassword = false;
       authState.currentScreen = "register";
       rerender();
     }
@@ -726,6 +733,7 @@ function renderRegisterScreen(onComplete, onBack, rerender) {
     el("button", {
       class: "canva-back-btn",
       onclick: function () {
+        authState.isForgotPassword = false;
         authState.currentScreen = "login";
         rerender();
       }
@@ -838,8 +846,8 @@ function renderRegisterScreen(onComplete, onBack, rerender) {
 
   var errorMsg = el("div", { class: "canva-error-msg", style: { color: "#991b1b" } });
 
-  // Button: ቀጣይ
-  var nextBtn = el("button", { class: "canva-action-btn-navy mt-4" }, "ቀጣይ");
+  // Button: ቀጥል
+  var nextBtn = el("button", { class: "canva-action-btn-navy mt-4" }, "ቀጥል");
   nextBtn.addEventListener("click", async function () {
     var org = orgInput.value.trim();
     var name = nameInput.value.trim();
@@ -853,9 +861,15 @@ function renderRegisterScreen(onComplete, onBack, rerender) {
     if (!p1) { errorMsg.textContent = "እባክዎ የይለፍ ቃል ያስገቡ"; return; }
     if (p1 !== p2) { errorMsg.textContent = "የይለፍ ቃሎቹ አልተመሳሰሉም — እባክዎ ያረጋግጡ"; return; }
 
-    var intlPhone = toInternationalPhone(ph) || ph;
+    var intlPhone = normalizePhoneNumber(ph);
+    if (!intlPhone) {
+      errorMsg.textContent = "እባክዎ ትክክለኛ ስልክ ቁጥር ያስገቡ";
+      return;
+    }
+
     var generatedStoreId = "store_" + intlPhone.replace(/\D/g, "");
 
+    authState.isForgotPassword = false;
     authState.regData.orgName = org;
     authState.regData.fullName = name;
     authState.regData.phone = intlPhone;
@@ -868,9 +882,22 @@ function renderRegisterScreen(onComplete, onBack, rerender) {
     authState.regData.isOwner = true;
 
     errorMsg.textContent = "";
-
     nextBtn.disabled = true;
     nextBtn.textContent = "በማረጋገጥ ላይ...";
+
+    // 2. CHECK FOR EXISTING USER BEFORE CREATION:
+    // Perform Firestore lookup check on normalized phone Document ID (/users/+251...)
+    try {
+      var userAlreadyExists = await checkIfUserExistsInFirestore(intlPhone);
+      if (userAlreadyExists) {
+        errorMsg.textContent = "ይህ የስልክ ቁጥር አስቀድሞ ተመዝግቧል! እባክዎ በሎጊን ገጽ ይግቡ።";
+        nextBtn.disabled = false;
+        nextBtn.textContent = "ቀጥል";
+        return;
+      }
+    } catch (checkErr) {
+      console.warn("User existence lookup notice:", checkErr);
+    }
 
     // 1. User Account Creation (Write to users collection: users/+251XXXXXXXXX)
     // 2. Separate Shop Document Creation (shops/{store_id})
@@ -885,13 +912,21 @@ function renderRegisterScreen(onComplete, onBack, rerender) {
           role: "owner",
           isOwner: true,
           store_id: generatedStoreId,
-          storeId: generatedStoreId
+          storeId: generatedStoreId,
+          isNewRegistration: true
         }),
         10000
       );
 
       if (userRes && !userRes.ok) {
-        throw new Error(userRes.error || "የተጠቃሚ መለያ በ Firestore ማስቀመጥ አልተቻለም");
+        if (userRes.alreadyExists || (userRes.error && userRes.error.includes("አስቀድሞ ተመዝግቧል"))) {
+          errorMsg.textContent = "ይህ የስልክ ቁጥር አስቀድሞ ተመዝግቧል! እባክዎ በሎጊን ገጽ ይግቡ።";
+        } else {
+          errorMsg.textContent = userRes.error || "የተጠቃሚ መለያ በ Firestore ማስቀመጥ አልተቻለም";
+        }
+        nextBtn.disabled = false;
+        nextBtn.textContent = "ቀጥል";
+        return;
       }
 
       var shopRes = await withTimeout(
@@ -926,6 +961,7 @@ function renderRegisterScreen(onComplete, onBack, rerender) {
         authState.otpData.timerId = null;
       }
       authState.otpData.secondsLeft = 120;
+      authState.isForgotPassword = false;
       authState.currentScreen = "verify";
       rerender();
     } catch (error) {
@@ -940,7 +976,7 @@ function renderRegisterScreen(onComplete, onBack, rerender) {
     } finally {
       nextBtn.disabled = false;
       if (nextBtn.textContent === "በማረጋገጥ ላይ...") {
-        nextBtn.textContent = "ቀጣይ";
+        nextBtn.textContent = "ቀጥል";
       }
     }
   });
@@ -950,6 +986,7 @@ function renderRegisterScreen(onComplete, onBack, rerender) {
     class: "canva-link-btn",
     style: { color: "#1e293b", fontWeight: "700" },
     onclick: function () {
+      authState.isForgotPassword = false;
       authState.currentScreen = "login";
       rerender();
     }
@@ -1405,11 +1442,18 @@ function renderVerifyScreen(onComplete, onBack, rerender) {
         codeInput.classList.remove("is-invalid");
         codeInput.classList.add("is-valid");
         errorMsg.style.color = "#a7f3d0";
-        errorMsg.textContent = "✓ ኮዱ ተረጋግጧል! ወደ የይለፍ ቃል ማስተካከያ በመሸጋገር ላይ...";
-        setTimeout(function () {
-          authState.currentScreen = "reset_password";
-          rerender();
-        }, 350);
+        if (authState.isForgotPassword) {
+          errorMsg.textContent = "✓ ኮዱ ተረጋግጧል! ወደ የይለፍ ቃል ማስተካከያ በመሸጋገር ላይ...";
+          setTimeout(function () {
+            authState.currentScreen = "reset_password";
+            rerender();
+          }, 350);
+        } else {
+          errorMsg.textContent = "✓ ኮዱ ተረጋግጧል! ወደ ዳሽቦርድ በመግባት ላይ...";
+          setTimeout(function () {
+            completeAuth(confirmedPhone);
+          }, 350);
+        }
       } else {
         codeInput.classList.remove("is-valid");
         codeInput.classList.add("is-invalid");
@@ -1631,6 +1675,7 @@ function renderResetPasswordScreen(onComplete, onBack, rerender) {
     el("button", {
       class: "canva-back-btn",
       onclick: function () {
+        authState.isForgotPassword = false;
         authState.currentScreen = "login";
         rerender();
       }
@@ -1794,6 +1839,7 @@ function renderResetPasswordScreen(onComplete, onBack, rerender) {
 }
 
 async function completeAuthAfterReset(phone, pin, onComplete) {
+  authState.isForgotPassword = false;
   var prefs = loadPrefs();
   var digits = phone.replace(/\D/g, "");
   var uniqueStoreId = authState.regData.store_id || ("store_" + digits);

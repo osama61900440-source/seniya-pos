@@ -59,35 +59,47 @@ function normalizePhone(phone: string): string {
   return digits;
 }
 
-// Convert phone numbers to exact international format (+2519XXXXXXXX)
-function toInternationalPhone(phone: string): string {
+// Helper to standardize all phone numbers before query or registration (+2519XXXXXXXX)
+function normalizePhoneNumber(phone: string): string {
   if (!phone) return "";
   const raw = String(phone).trim().replace(/[\s\-()]/g, "");
+  if (!raw) return "";
   const digits = raw.replace(/\D/g, "");
 
-  // Handle +251 09... or 25109... (13 digits)
+  // 1. Handle +251 09... or 25109... (13 digits)
   if (digits.startsWith("2510") && digits.length === 13) {
     return "+251" + digits.slice(4);
   }
-  // Standard 2519... or 2517... (12 digits)
+  // 2. Standard 2519... or 2517... (12 digits)
   if (digits.startsWith("251") && digits.length === 12) {
-    return "+" + digits;
+    return "+251" + digits.slice(3);
   }
-  // Standard 09... or 07... (10 digits)
+  // 3. Standard 09... or 07... (10 digits)
   if (digits.startsWith("0") && digits.length === 10) {
     return "+251" + digits.slice(1);
   }
-  // 9 digits starting with 9 or 7
+  // 4. 9 digits starting with 9 or 7
   if ((digits.startsWith("9") || digits.startsWith("7")) && digits.length === 9) {
     return "+251" + digits;
   }
   if (raw.startsWith("+") && digits.length >= 9) {
+    if (digits.startsWith("251")) {
+      return "+251" + (digits.startsWith("2510") ? digits.slice(4) : digits.slice(3));
+    }
     return "+" + digits;
   }
   if (digits.length >= 9) {
+    if (digits.startsWith("251")) {
+      return "+251" + (digits.startsWith("2510") ? digits.slice(4) : digits.slice(3));
+    }
     return "+251" + (digits.startsWith("0") ? digits.slice(1) : digits);
   }
-  return digits ? ("+" + digits) : "";
+  return digits ? ("+251" + digits) : "";
+}
+
+// Convert phone numbers to exact international format (+2519XXXXXXXX)
+function toInternationalPhone(phone: string): string {
+  return normalizePhoneNumber(phone);
 }
 
 // Check if two phone numbers match (considering local and international formats)
@@ -893,12 +905,26 @@ function getShopByStoreId(storeId: string): ShopProfile | null {
 // Separately creates document inside `shops` collection using store_id as Document ID (shops/{store_id})
 // -------------------------------------------------------------
 app.post("/api/users/register", (req, res) => {
-  const { phone, password, role, store_id, storeId, isOwner, orgName, name, fullName } = req.body || {};
+  const { phone, password, role, store_id, storeId, isOwner, orgName, name, fullName, allowOverwrite } = req.body || {};
   const cleanPhone = String(phone || "").trim().replace(/\s+/g, "");
   const intlPhone = toInternationalPhone(cleanPhone) || cleanPhone;
   if (!intlPhone) {
     return res.status(400).json({ ok: false, error: "ትክክለኛ ስልክ ቁጥር ያስገቡ" });
   }
+
+  // CHECK FOR EXISTING USER BEFORE CREATION:
+  // If not allowOverwrite, block duplicate registration and return Amharic error
+  if (!allowOverwrite) {
+    const existing = getUserByPhone(intlPhone);
+    if (existing) {
+      return res.status(409).json({
+        ok: false,
+        error: "ይህ የስልክ ቁጥር አስቀድሞ ተመዝግቧል! እባክዎ በሎጊን ገጽ ይግቡ።",
+        alreadyExists: true
+      });
+    }
+  }
+
   const cleanPassword = String(password || "").trim();
   if (!cleanPassword) {
     return res.status(400).json({ ok: false, error: "የይለፍ ቃል ያስፈልጋል" });

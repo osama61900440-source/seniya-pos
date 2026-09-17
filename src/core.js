@@ -718,34 +718,53 @@ export function freshData() {
   };
 }
 
-export function toInternationalPhone(phone) {
+/**
+ * Helper function to standardize all phone numbers before query or registration.
+ * Converts any input format (e.g. "0961900440", "251961900440", "+251961900440")
+ * into a single standard format: "+251961900440".
+ * Always used as Document ID in 'users' collection.
+ */
+export function normalizePhoneNumber(phone) {
   if (!phone) return "";
   var raw = String(phone).trim().replace(/[\s\-()]/g, "");
+  if (!raw) return "";
   var digits = raw.replace(/\D/g, "");
 
-  // Handle +251 09... or 25109... (13 digits)
+  // 1. Handle +251 09... or 25109... (13 digits with country code and trunk 0)
   if (digits.startsWith("2510") && digits.length === 13) {
     return "+251" + digits.slice(4);
   }
-  // Standard 2519... or 2517... (12 digits)
+  // 2. Standard 2519... or 2517... (12 digits)
   if (digits.startsWith("251") && digits.length === 12) {
-    return "+" + digits;
+    return "+251" + digits.slice(3);
   }
-  // Standard 09... or 07... (10 digits)
+  // 3. Standard Ethiopian mobile with trunk 0: 09... or 07... (10 digits)
   if (digits.startsWith("0") && digits.length === 10) {
     return "+251" + digits.slice(1);
   }
-  // 9 digits starting with 9 or 7 (e.g. 911223344 or 711223344)
+  // 4. 9 digits starting with 9 or 7 (e.g. 961900440 or 712345678)
   if ((digits.startsWith("9") || digits.startsWith("7")) && digits.length === 9) {
     return "+251" + digits;
   }
+  // 5. Input starting with '+'
   if (raw.startsWith("+") && digits.length >= 9) {
+    if (digits.startsWith("251")) {
+      return "+251" + (digits.startsWith("2510") ? digits.slice(4) : digits.slice(3));
+    }
     return "+" + digits;
   }
+  // 6. Generic fallback for digits length >= 9
   if (digits.length >= 9) {
+    if (digits.startsWith("251")) {
+      return "+251" + (digits.startsWith("2510") ? digits.slice(4) : digits.slice(3));
+    }
     return "+251" + (digits.startsWith("0") ? digits.slice(1) : digits);
   }
-  return digits ? ("+" + digits) : "";
+  return digits ? ("+251" + digits) : "";
+}
+
+export function toInternationalPhone(phone) {
+  return normalizePhoneNumber(phone);
 }
 
 export function normalizePhone(phone) {

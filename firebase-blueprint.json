@@ -1,0 +1,74 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User account profile with normalized phone (+251XXXXXXXXX) as document ID",
+      "type": "object",
+      "properties": {
+        "phone": {
+          "type": "string",
+          "description": "Standardized Ethiopian phone number in international format (+251XXXXXXXXX)"
+        },
+        "full_name": {
+          "type": "string",
+          "description": "Full name of user"
+        },
+        "password": {
+          "type": "string",
+          "description": "User password or PIN"
+        },
+        "role": {
+          "type": "string",
+          "description": "Role of user (owner, admin, employee)"
+        },
+        "store_id": {
+          "type": "string",
+          "description": "Assigned store identifier"
+        },
+        "isOwner": {
+          "type": "boolean",
+          "description": "Whether user owns the shop"
+        },
+        "createdAt": {
+          "type": "number",
+          "description": "Timestamp of account creation"
+        }
+      },
+      "required": ["phone", "store_id", "role"]
+    },
+    "Shop": {
+      "title": "Shop",
+      "description": "Shop profile and isolated store data",
+      "type": "object",
+      "properties": {
+        "store_id": {
+          "type": "string",
+          "description": "Unique shop identifier"
+        },
+        "name": {
+          "type": "string",
+          "description": "Shop business name"
+        },
+        "owner_phone": {
+          "type": "string",
+          "description": "Owner phone number in normalized +251XXXXXXXXX format"
+        }
+      },
+      "required": ["store_id", "name", "owner_phone"]
+    }
+  },
+  "firestore": {
+    "/users/{phone}": {
+      "schema": {
+        "$ref": "#/entities/User"
+      },
+      "description": "User profiles indexed by normalized phone document ID (+251XXXXXXXXX)"
+    },
+    "/shops/{storeId}": {
+      "schema": {
+        "$ref": "#/entities/Shop"
+      },
+      "description": "Shop metadata indexed by storeId"
+    }
+  }
+}

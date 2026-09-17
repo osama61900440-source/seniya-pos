@@ -240,7 +240,7 @@ export function Sidebar({ currentUser: propUser, onClose, onSelect }: SidebarPro
     <div className="drawer-overlay fixed inset-0 z-50 flex">
       <div className="drawer-bg fixed inset-0 bg-black/50" onClick={onClose} />
       <aside
-        className="drawer canva-blue relative z-10 w-72 h-full bg-[#122B4A] text-white flex flex-col shadow-2xl"
+        className="drawer canva-blue relative z-10 w-72 h-full bg-[#001389] text-white flex flex-col shadow-2xl"
         role="navigation"
         aria-label="Main Sidebar Navigation"
       >

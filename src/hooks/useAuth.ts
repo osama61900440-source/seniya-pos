@@ -4,7 +4,9 @@ import {
   saveShopToFirestore,
   fetchUserFromFirestore,
   isFirestoreConfigured,
-  withTimeout
+  withTimeout,
+  normalizePhoneNumber,
+  checkIfUserExistsInFirestore
 } from "../firebase";
 
 export interface UserProfile {
@@ -93,21 +95,13 @@ export function useAuth() {
   }, [currentUser]);
 
   /**
-   * Helper to normalize Ethiopian and international phone numbers
+   * Helper function to standardize all phone numbers before query or registration.
+   * Converts any input format (e.g., "0961900440", "251961900440", "+251961900440")
+   * into a single standard format: "+251961900440".
+   * Always used as Document ID in 'users' collection.
    */
   const normalizePhone = useCallback((rawPhone: string): string => {
-    let p = String(rawPhone || "").trim().replace(/[\s\-()]/g, "");
-    if (!p) return "";
-    if (p.startsWith("09") || p.startsWith("07")) {
-      return "+251" + p.slice(1);
-    }
-    if (p.startsWith("251")) {
-      return "+" + p;
-    }
-    if (!p.startsWith("+") && /^\d+$/.test(p)) {
-      return "+251" + (p.startsWith("0") ? p.slice(1) : p);
-    }
-    return p;
+    return normalizePhoneNumber(rawPhone);
   }, []);
 
   /**
@@ -150,10 +144,17 @@ export function useAuth() {
         const registrationTask = async () => {
           console.log(`[useAuth] Starting registration for phone: ${phone}`);
 
-          // 1. Check if user already exists
+          // 1. CHECK FOR EXISTING USER BEFORE CREATION:
+          // Perform Firestore lookup check on normalized phone Document ID (/users/+251...)
+          const userAlreadyExists = await checkIfUserExistsInFirestore(phone);
+          if (userAlreadyExists) {
+            throw new Error("ይህ የስልክ ቁጥር አስቀድሞ ተመዝግቧል! እባክዎ በሎጊን ገጽ ይግቡ።");
+          }
+
+          // Secondary double-check via fetchUserFromFirestore
           const existingUser = await fetchUserFromFirestore(phone);
           if (existingUser) {
-            throw new Error("በዚህ ስልክ ቁጥር ቀደም ሲል የተመዘገበ መለያ አለ። እባክዎ ይግቡ።");
+            throw new Error("ይህ የስልክ ቁጥር አስቀድሞ ተመዝግቧል! እባክዎ በሎጊን ገጽ ይግቡ።");
           }
 
           // 2. Generate unique store_id
@@ -197,9 +198,15 @@ export function useAuth() {
             updatedAt: Date.now()
           };
 
-          // Save user & shop
-          const userRes = await saveUserToFirestore(userPayload);
+          // 5. Save user & shop with no overwrite
+          const userRes = await saveUserToFirestore({
+            ...userPayload,
+            isNewRegistration: true
+          });
           if (!userRes.ok) {
+            if (userRes.alreadyExists || (userRes.error && userRes.error.includes("አስቀድሞ ተመዝግቧል"))) {
+              throw new Error("ይህ የስልክ ቁጥር አስቀድሞ ተመዝግቧል! እባክዎ በሎጊን ገጽ ይግቡ።");
+            }
             throw new Error(userRes.error || "የተጠቃሚ መለያ ማስቀመጥ አልተቻለም");
           }
 

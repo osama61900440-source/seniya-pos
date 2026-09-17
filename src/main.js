@@ -903,14 +903,14 @@ function renderDashboard(container) {
 
   var totalAsset = totalCapitalCents(data);
 
-  var totalAssetCard = el("div", { class: "card section", style: { background: "linear-gradient(135deg, #6d28d9 0%, #4c1d95 100%)", color: "#ffffff", borderRadius: "16px", padding: "20px 24px", boxShadow: "0 10px 25px -5px rgba(109, 40, 217, 0.3)" } }, [
+  var totalAssetCard = el("div", { class: "capital-card section", style: { background: "linear-gradient(135deg, #3b82f6 0%, #2563eb 60%, #1d4ed8 100%)", color: "#ffffff", borderRadius: "16px", padding: "20px 24px", boxShadow: "0 6px 18px rgba(37, 99, 235, 0.28)" } }, [
     el("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center" } }, [
       el("div", {}, [
-        el("div", { style: { fontSize: "13px", fontWeight: "600", color: "#ddd6fe", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "4px" } }, "💎 ጠቅላላ እሴት (TOTAL ASSET)"),
+        el("div", { style: { fontSize: "13px", fontWeight: "600", color: "rgba(255, 255, 255, 0.9)", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "4px" } }, "💎 ጠቅላላ እሴት (TOTAL ASSET)"),
         el("div", { style: { fontSize: "28px", fontWeight: "900", color: "#ffffff" } }, fmt(totalAsset)),
-        el("div", { style: { fontSize: "11.5px", color: "#e9d5ff", marginTop: "4px" } }, "የእቃዎች ጠቅላላ የመሸጫ እሴት (ካፒታል + የሚጠበቅ ትርፍ)")
+        el("div", { style: { fontSize: "11.5px", color: "rgba(255, 255, 255, 0.85)", marginTop: "4px" } }, "የእቃዎች ጠቅላላ የመሸጫ እሴት (ካፒታል + የሚጠበቅ ትርፍ)")
       ]),
-      el("div", { style: { width: "48px", height: "48px", borderRadius: "12px", background: "rgba(255, 255, 255, 0.15)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "24px" } }, "🏛️")
+      el("div", { style: { width: "48px", height: "48px", borderRadius: "12px", background: "rgba(255, 255, 255, 0.18)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "24px" } }, "🏛️")
     ])
   ]);
   container.appendChild(totalAssetCard);
@@ -6993,6 +6993,7 @@ function openMainMenu() {
   function showBlueMenu() {
     clear(drawerEl);
     drawerEl.className = "drawer canva-blue";
+    drawerEl.style.backgroundColor = "#001389";
 
     var currentUser = getCurrentUser();
     var rawName = (currentUser && (currentUser.name || currentUser.fullName)) || (state.data.profile && state.data.profile.ownerName) || "";

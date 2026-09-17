@@ -165,28 +165,52 @@ if (typeof window !== "undefined") {
   };
 }
 
-export function formatToInternationalPhone(rawPhone) {
+/**
+ * Helper function to standardize all phone numbers before query or registration.
+ * Converts any input format (e.g. "0961900440", "251961900440", "+251961900440")
+ * into a single standard format: "+251961900440".
+ * Always used as Document ID in 'users' collection.
+ */
+export function normalizePhoneNumber(rawPhone) {
   let p = String(rawPhone || "").trim().replace(/[\s\-()]/g, "");
+  if (!p) return "";
   let digits = p.replace(/\D/g, "");
+
+  // 1. Handle +251 09... or 25109... (13 digits with country code and trunk 0)
   if (digits.startsWith("2510") && digits.length === 13) {
     return "+251" + digits.slice(4);
   }
+  // 2. Standard 2519... or 2517... (12 digits)
   if (digits.startsWith("251") && digits.length === 12) {
-    return "+" + digits;
+    return "+251" + digits.slice(3);
   }
+  // 3. Standard Ethiopian mobile with trunk 0: 09... or 07... (10 digits)
   if (digits.startsWith("0") && digits.length === 10) {
     return "+251" + digits.slice(1);
   }
+  // 4. 9 digits starting with 9 or 7 (e.g. 961900440 or 712345678)
   if ((digits.startsWith("9") || digits.startsWith("7")) && digits.length === 9) {
     return "+251" + digits;
   }
+  // 5. Input starting with '+'
   if (p.startsWith("+") && digits.length >= 9) {
+    if (digits.startsWith("251")) {
+      return "+251" + (digits.startsWith("2510") ? digits.slice(4) : digits.slice(3));
+    }
     return "+" + digits;
   }
+  // 6. Generic fallback for digits length >= 9
   if (digits.length >= 9) {
+    if (digits.startsWith("251")) {
+      return "+251" + (digits.startsWith("2510") ? digits.slice(4) : digits.slice(3));
+    }
     return "+251" + (digits.startsWith("0") ? digits.slice(1) : digits);
   }
-  return digits ? ("+" + digits) : "";
+  return digits ? ("+251" + digits) : "";
+}
+
+export function formatToInternationalPhone(rawPhone) {
+  return normalizePhoneNumber(rawPhone);
 }
 
 export function formatToLocalPhone(rawPhone) {
@@ -210,7 +234,7 @@ export function formatToLocalPhone(rawPhone) {
 export function getFirestorePhoneCandidates(phone) {
   const clean = String(phone || "").trim().replace(/[\s\-()]/g, "");
   if (!clean) return [];
-  const intl = formatToInternationalPhone(clean);
+  const intl = normalizePhoneNumber(clean);
   const local = formatToLocalPhone(clean);
   const digits = clean.replace(/\D/g, "");
 
@@ -228,8 +252,65 @@ export function getFirestorePhoneCandidates(phone) {
 }
 
 /**
+ * 2. Check for existing user before creation
+ * Performs a Firestore lookup check on the normalized phone Document ID (/users/+251...)
+ * Returns true if document exists, false otherwise.
+ */
+export async function checkIfUserExistsInFirestore(phone) {
+  const normPhone = normalizePhoneNumber(phone);
+  if (!normPhone) return false;
+
+  // 1. Direct Firestore lookup check on normalized phone Document ID (/users/+251...)
+  if (db && isFirestoreConfigured()) {
+    try {
+      const userRef = doc(db, "users", normPhone);
+      const snap = await withTimeout(getDoc(userRef), 3000);
+      if (snap.exists()) {
+        console.log(`[Firestore] ✓ User exists in /users/${normPhone}`);
+        return true;
+      }
+    } catch (err) {
+      console.warn(`[Firestore] Document check error for users/${normPhone}:`, err?.message);
+    }
+
+    // Secondary query check on users collection where phone == normPhone
+    try {
+      const q = query(collection(db, "users"), where("phone", "==", normPhone));
+      const querySnap = await withTimeout(getDocs(q), 3000);
+      if (!querySnap.empty) {
+        console.log(`[Firestore] ✓ User found via query for phone == ${normPhone}`);
+        return true;
+      }
+    } catch (qErr) {
+      console.warn("[Firestore] Query check notice:", qErr?.message);
+    }
+  }
+
+  // 2. Query backend API
+  try {
+    const res = await fetch("/api/users/" + encodeURIComponent(normPhone));
+    const resJson = await res.json();
+    if (resJson && resJson.ok && resJson.user) {
+      console.log(`[Backend API] ✓ User found for ${normPhone}`);
+      return true;
+    }
+  } catch (apiErr) {}
+
+  // 3. Check local users store
+  try {
+    const localUsers = JSON.parse(localStorage.getItem("scs_users_store") || "{}");
+    if (localUsers[normPhone]) {
+      return true;
+    }
+  } catch (e) {}
+
+  return false;
+}
+
+/**
  * 1. Persist New User Account directly to users/{phone}
  * Document ID format: users/+251XXXXXXXXX
+ * Strictly prevents overwriting existing users during new registration.
  */
 export async function saveUserToFirestore(params) {
   let rawPhone = String(params.phone || "").trim().replace(/\s+/g, "");
@@ -238,8 +319,30 @@ export async function saveUserToFirestore(params) {
     return { ok: false, error: "ስልክ ቁጥር አልተገኘም" };
   }
 
-  // Ensure format +251XXXXXXXXX
-  let phone = formatToInternationalPhone(rawPhone) || rawPhone;
+  // Always use standardized format +251XXXXXXXXX as Document ID in users collection
+  let phone = normalizePhoneNumber(rawPhone) || rawPhone;
+  const isNewRegistration = params.isNewRegistration || params.isRegistration || (params.allowOverwrite === false);
+
+  // PREVENT DUPLICATE USER REGISTRATION:
+  // Check if user already exists before new creation
+  if (isNewRegistration) {
+    if (db && isFirestoreConfigured()) {
+      try {
+        const userRef = doc(db, "users", phone);
+        const snap = await withTimeout(getDoc(userRef), 3000);
+        if (snap.exists()) {
+          console.warn(`[Firestore Registration Blocked] User already exists at users/${phone}`);
+          return {
+            ok: false,
+            error: "ይህ የስልክ ቁጥር አስቀድሞ ተመዝግቧል! እባክዎ በሎጊን ገጽ ይግቡ።",
+            alreadyExists: true
+          };
+        }
+      } catch (err) {
+        console.warn("[Firestore] Check before creation notice:", err?.message);
+      }
+    }
+  }
 
   const fullName = String(params.full_name || params.fullName || params.name || "የሱቅ ባለቤት").trim();
   const password = String(params.password || "1234").trim();
@@ -269,7 +372,18 @@ export async function saveUserToFirestore(params) {
   if (db && isFirestoreConfigured()) {
     try {
       const userRef = doc(db, "users", phone);
-      await withTimeout(setDoc(userRef, userPayload, { merge: true }), 3000);
+      // Extra safety: never overwrite if this is a new registration
+      if (isNewRegistration) {
+        const checkSnap = await withTimeout(getDoc(userRef), 2000);
+        if (checkSnap.exists()) {
+          return {
+            ok: false,
+            error: "ይህ የስልክ ቁጥር አስቀድሞ ተመዝግቧል! እባክዎ በሎጊን ገጽ ይግቡ።",
+            alreadyExists: true
+          };
+        }
+      }
+      await withTimeout(setDoc(userRef, userPayload, { merge: !isNewRegistration }), 3000);
       console.log(`[Firestore] ✓ Successfully persisted user account in users/${phone}`);
       firestoreSuccess = true;
     } catch (error) {
@@ -284,12 +398,18 @@ export async function saveUserToFirestore(params) {
     const res = await fetch("/api/users/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(userPayload)
+      body: JSON.stringify({ ...userPayload, allowOverwrite: !isNewRegistration })
     });
     resData = await res.json();
     if (resData && resData.ok) {
       apiSuccess = true;
       console.log(`[Backend API] Sync result for users/${phone}:`, resData);
+    } else if (resData && !resData.ok && resData.alreadyExists) {
+      return {
+        ok: false,
+        error: resData.error || "ይህ የስልክ ቁጥር አስቀድሞ ተመዝግቧል! እባክዎ በሎጊን ገጽ ይግቡ።",
+        alreadyExists: true
+      };
     }
   } catch (apiErr) {
     console.warn(`[Backend API] Sync warning for users/${phone}:`, apiErr);
@@ -299,9 +419,16 @@ export async function saveUserToFirestore(params) {
     return { ok: true, data: userPayload, firestoreSuccess, user: resData?.user || userPayload, shop: resData?.shop };
   }
 
-  // If both failed and Firestore is unconfigured, ensure local cache fallback works
+  // If both failed and Firestore is unconfigured, check local cache fallback
   try {
     const localUsers = JSON.parse(localStorage.getItem("scs_users_store") || "{}");
+    if (isNewRegistration && localUsers[phone]) {
+      return {
+        ok: false,
+        error: "ይህ የስልክ ቁጥር አስቀድሞ ተመዝግቧል! እባክዎ በሎጊን ገጽ ይግቡ።",
+        alreadyExists: true
+      };
+    }
     localUsers[phone] = userPayload;
     localStorage.setItem("scs_users_store", JSON.stringify(localUsers));
     return { ok: true, data: userPayload, firestoreSuccess: false, user: userPayload };

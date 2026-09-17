@@ -31,7 +31,9 @@ import {
   saveInventoryItemToFirestore,
   isFirestoreConfigured,
   withTimeout,
-  formatToInternationalPhone
+  formatToInternationalPhone,
+  normalizePhoneNumber,
+  checkIfUserExistsInFirestore
 } from "./firebase.js";
 
 const firebaseConfig = {
@@ -96,6 +98,8 @@ export {
   isFirestoreConfigured,
   withTimeout,
   formatToInternationalPhone,
+  normalizePhoneNumber,
+  checkIfUserExistsInFirestore,
   doc,
   setDoc,
   getDoc,
