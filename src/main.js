@@ -103,18 +103,41 @@ export function getCurrentStoreId() {
   return "";
 }
 
+export function isUserAuthenticated() {
+  if (typeof window === "undefined") return false;
+  var phone = getActiveSessionPhone();
+  if (phone) return true;
+  var storeId = getCurrentStoreId();
+  if (storeId && storeId !== "store_default") return true;
+  try {
+    var sCur = sessionStorage.getItem("currentUser") || sessionStorage.getItem("authUser");
+    if (sCur) {
+      var p = JSON.parse(sCur);
+      if (p && (p.phone || p.store_id || p.storeId)) return true;
+    }
+    var lCur = localStorage.getItem("currentUser") || localStorage.getItem("authUser");
+    if (lCur) {
+      var pL = JSON.parse(lCur);
+      if (pL && (pL.phone || pL.store_id || pL.storeId)) return true;
+    }
+  } catch (e) {}
+  return false;
+}
+
 var prefs = loadPrefs();
 var initialSessionPhone = getActiveSessionPhone();
 var initialSessionStoreId = getCurrentStoreId();
+var initialAuthenticated = isUserAuthenticated();
+
 var state = {
   data: loadData(initialSessionPhone, initialSessionStoreId),
-  tab: "dashboard",
+  tab: initialAuthenticated ? "dashboard" : "auth",
   tabHistory: [],
   locked: false,
   currentUser: (prefs && prefs.authUser) || null,
   currentStoreId: initialSessionStoreId
 };
-state.locked = !!(prefs.appLockEnabled && prefs.pinHash);
+state.locked = !!(prefs.appLockEnabled && prefs.pinHash && initialAuthenticated);
 
 export function getCurrentUser() {
   var user = null;
@@ -217,6 +240,11 @@ export function getCurrentUser() {
 }
 
 export function navigateToTab(tab, options) {
+  if (!isUserAuthenticated()) {
+    state.tab = "auth";
+    renderApp();
+    return;
+  }
   var user = getCurrentUser();
   if (user && user.role === "employee" && (tab === "profile" || tab === "allocgoal")) {
     showToast("⛔ ይህ ክፍል ለአስተዳዳሪ ብቻ የተፈቀደ ነው");
@@ -247,6 +275,11 @@ export function navigateToTab(tab, options) {
 }
 
 export function navigateBack() {
+  if (!isUserAuthenticated()) {
+    state.tab = "auth";
+    renderApp();
+    return;
+  }
   state.fromSidebar = false;
   state.selectedLocation = null;
   state.tabHistory = [];
@@ -266,6 +299,11 @@ if (typeof window !== "undefined") {
         topOverlay.remove();
         return;
       }
+    }
+    if (!isUserAuthenticated()) {
+      state.tab = "auth";
+      renderApp();
+      return;
     }
     if (ev.state && ev.state.tab) {
       state.tab = ev.state.tab;
@@ -906,9 +944,8 @@ function renderDashboard(container) {
   var totalAssetCard = el("div", { class: "capital-card section", style: { background: "linear-gradient(135deg, #3b82f6 0%, #2563eb 60%, #1d4ed8 100%)", color: "#ffffff", borderRadius: "16px", padding: "20px 24px", boxShadow: "0 6px 18px rgba(37, 99, 235, 0.28)" } }, [
     el("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center" } }, [
       el("div", {}, [
-        el("div", { style: { fontSize: "13px", fontWeight: "600", color: "rgba(255, 255, 255, 0.9)", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "4px" } }, "💎 ጠቅላላ እሴት (TOTAL ASSET)"),
-        el("div", { style: { fontSize: "28px", fontWeight: "900", color: "#ffffff" } }, fmt(totalAsset)),
-        el("div", { style: { fontSize: "11.5px", color: "rgba(255, 255, 255, 0.85)", marginTop: "4px" } }, "የእቃዎች ጠቅላላ የመሸጫ እሴት (ካፒታል + የሚጠበቅ ትርፍ)")
+        el("div", { style: { fontSize: "13px", fontWeight: "600", color: "rgba(255, 255, 255, 0.9)", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "4px" } }, "💎 ጠቅላላ እሴት"),
+        el("div", { style: { fontSize: "28px", fontWeight: "900", color: "#ffffff" } }, fmt(totalAsset))
       ]),
       el("div", { style: { width: "48px", height: "48px", borderRadius: "12px", background: "rgba(255, 255, 255, 0.18)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "24px" } }, "🏛️")
     ])
@@ -7010,7 +7047,7 @@ function openMainMenu() {
       }
     }
     var displayRole = currentUser.role === "admin"
-      ? "አስተዳዳሪ (ባለቤት)"
+      ? "አስተዳዳሪ"
       : ((employeeJobTitle && String(employeeJobTitle).trim()) || "ሰራተኛ");
     var avatarImg = (currentUser && currentUser.avatar) || (state.data.profile && state.data.profile.managerPhoto) || "";
 
@@ -12932,7 +12969,13 @@ function BottomNav() {
 export function renderApp() {
   var root = document.getElementById("root");
   clear(root);
-  if (state.locked) {
+
+  // Authentication gate: Block unauthenticated users from bypassing authentication or directly viewing the Main Dashboard
+  if (!isUserAuthenticated()) {
+    state.tab = "auth";
+  }
+
+  if (state.locked && isUserAuthenticated()) {
     root.appendChild(buildLockScreen());
     return;
   }
@@ -12954,7 +12997,8 @@ export function renderApp() {
           state.currentUser = p.authUser;
           if (typeof window !== "undefined") window.currentUser = p.authUser;
         }
-        state.data = loadData(activePhone);
+        var resolvedStoreId = getCurrentStoreId();
+        state.data = loadData(activePhone, resolvedStoreId);
         state.tab = "dashboard";
         renderApp();
         if (activePhone) {
@@ -12962,8 +13006,13 @@ export function renderApp() {
         }
       },
       onBack: function () {
-        state.tab = "dashboard";
-        renderApp();
+        if (isUserAuthenticated()) {
+          state.tab = "dashboard";
+          renderApp();
+        } else {
+          state.tab = "auth";
+          renderApp();
+        }
       }
     });
     root.appendChild(authView);

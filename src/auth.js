@@ -136,16 +136,8 @@ export function buildAuthContainer(options) {
 function renderLoginScreen(onComplete, onBack, rerender) {
   var wrap = el("div", { class: "canva-screen canva-screen-login" });
 
-  // Top header completely removed as requested (← ወደ አካውንት ይግቡ removed)
-
-  var cardBody = el("div", { class: "canva-card-body", style: { justifyContent: "center", paddingTop: "14px" } });
-
-  // Refined minimalist Profile / Brand Logo Card (S / seniya)
-  var logoBadge = el("div", { class: "seniya-logo-box-minimal" }, [
-    el("div", { class: "seniya-avatar-circle" }, "S"),
-    el("div", { class: "seniya-brand-text" }, "seniya")
-  ]);
-  cardBody.appendChild(logoBadge);
+  // Top header completely removed to prevent double headers
+  var cardBody = el("div", { class: "canva-card-body", style: { justifyContent: "center", paddingTop: "20px" } });
 
   // Ensure explicit empty defaults on login screen
   authState.loginData.phone = "";

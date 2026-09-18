@@ -1,25 +1,110 @@
 @import "tailwindcss";
 
+@page {
+  size: A4;
+  margin: 10mm;
+}
+
 @media print {
-  /* Hide all app containers, sidebar, buttons, modals, and toasts */
-  body * {
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* 1 & 3: Force background, text color and dynamic container height */
+  html, body, .app, .content, .pdf-container, .report-container, #root {
+    background-color: #ffffff !important;
+    color: #000000 !important;
+    height: auto !important;
+    min-height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    position: static !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  body, .pdf-container {
+    background-color: #ffffff !important;
+    color: #000000 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* 2: Only hide navigation bars, top app bars, action buttons, floating buttons and side menus */
+  nav, aside, header, footer, button, .no-print, .toast, .modal, .report-overlay-bar, .rbackbar,
+  .fab-btn, .emp-fab-btn, .sup-fab-btn-left, .inv-fab-btn, .drawer-overlay, .drawer-bg, .overlay-bg,
+  .pin-modal, .color-modal, .hamburger, .header-spacer, .navbtn, .icon-btn {
+    display: none !important;
     visibility: hidden !important;
   }
-  nav, aside, header, footer, button, .no-print, .toast, .modal {
-    display: none !important;
-  }
-  /* Show only the targeted printable report element */
-  #printable-report, #printable-report * {
+
+  /* Ensure all report content, tables, summary boxes, and text elements are unhidden and visible with high contrast */
+  #printable-report, #printable-report *,
+  .pdf-container, .pdf-container *,
+  .report-container, .report-container *,
+  .rmain, .rmain *,
+  .rpage, .rpage *,
+  .report-box, .report-box *,
+  .receipt-container, .receipt-container * {
     visibility: visible !important;
   }
-  #printable-report {
-    position: absolute !important;
-    left: 0 !important;
-    top: 0 !important;
+
+  #printable-report, .pdf-container, .report-container, .rmain, .report-box, .receipt-container {
+    position: static !important;
     width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    min-height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
     margin: 0 !important;
-    padding: 20px !important;
-    background: white !important;
-    color: black !important;
+    padding: 0 !important;
+    background-color: #ffffff !important;
+    color: #000000 !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+
+  /* High contrast text color for printable content */
+  .pdf-container, .report-container, .rmain, .rpage, .report-box, .receipt-container, #printable-report {
+    color: #000000 !important;
+  }
+
+  .rkv-key, .rsub, .rnote, .rfootnote, .card-label, .rhl-label, .eyebrow {
+    color: #1a1a1a !important;
+  }
+
+  .rkv-val, .rhl-value, h1, h2, h3, p, span, b, strong, td {
+    color: #000000 !important;
+  }
+
+  th {
+    background-color: #1e3a8a !important;
+    color: #ffffff !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .rpage, .report-box, .receipt-container {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    page-break-after: always !important;
+    break-after: page !important;
+    box-shadow: none !important;
+    height: auto !important;
+    min-height: auto !important;
+    overflow: visible !important;
+  }
+
+  .rpage:last-child {
+    page-break-after: auto !important;
+    break-after: auto !important;
   }
 }
+
+.report-container, .pdf-container, .rmain, .rpage, .report-box, .receipt-container, #printable-report {
+  page-break-inside: avoid !important;
+  break-inside: avoid !important;
+}
+

@@ -10,8 +10,24 @@ app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || "8617451852:AAFUpPpaai7M1meuMN025WHokFI4lUanbWg";
+const BOT_TOKEN = TELEGRAM_BOT_TOKEN;
 const TELEGRAM_BOT_USERNAME = "GrposBot";
+const RENDER_SERVER_URL = process.env.RENDER_SERVER_URL || "https://seniya-pos2.onrender.com";
 const SESSIONS_FILE = path.join(process.cwd(), "telegram_sessions.json");
+
+// Telegram Webhook ወደ Render የመቀየሪያ አሰራር
+async function setTelegramWebhook() {
+  try {
+    const webhookUrl = `${RENDER_SERVER_URL}/api/telegram`;
+    const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/setWebhook?url=${encodeURIComponent(webhookUrl)}`);
+    const result = await response.json();
+    console.log("Telegram Webhook Status:", result);
+    return result;
+  } catch (error) {
+    console.error("Webhook Error:", error);
+    return { ok: false, error: String(error) };
+  }
+}
 
 // In-memory OTP storage and verified Telegram contact mapping
 interface OtpSession {
@@ -304,6 +320,116 @@ async function sendTelegramOtpMessage(
   }
 }
 
+// Process incoming Telegram update (from Webhook or Polling)
+async function processTelegramUpdate(update: any) {
+  if (!update) return;
+  const msg = update.message || update.edited_message;
+  if (!msg || !msg.chat) return;
+
+  const chatId = msg.chat.id;
+  latestTelegramChatId = chatId;
+  const text = (msg.text || "").trim();
+  const firstName = msg.from?.first_name || "";
+
+  // Check if message has start parameter: e.g. /start RESET_0961900440, /start pass_0961900440 or /start VERIFY_STORE_09...
+  const matchVerify = text.match(/(?:pass|RESET|VERIFY(?:_STORE)?)_?(\d+)/i);
+  if (matchVerify && matchVerify[1]) {
+    const reqPhone = normalizePhone(matchVerify[1]) || matchVerify[1];
+    chatPendingRequestedPhone[String(chatId)] = { phone: reqPhone, timestamp: Date.now() };
+  }
+
+  // 1. Mandatory Telegram Contact Verification Check:
+  // Do NOT send OTP codes to any user who simply sends "/start" or plain text!
+  if (!msg.contact) {
+    // If the user hasn't shared their contact, require them to share contact first
+    const verifiedPhone = telegramChatToVerifiedPhone[String(chatId)];
+    const targetPhone = chatPendingRequestedPhone[String(chatId)]?.phone || (lastPendingPhone ? normalizePhone(lastPendingPhone) : "");
+
+    if (verifiedPhone && targetPhone) {
+      // If previously verified, check if verified phone matches the requested phone
+      if (!phonesMatch(verifiedPhone, targetPhone)) {
+        await sendTelegramRejectMessage(chatId);
+      } else {
+        // Verified and matching: generate and send OTP
+        const code = Math.floor(100000 + Math.random() * 900000).toString();
+        const now = Date.now();
+        const expiresAt = now + 2 * 60 * 1000;
+        otpStore[verifiedPhone] = {
+          phone: verifiedPhone,
+          code,
+          createdAt: now,
+          expiresAt,
+          verified: false,
+          telegramChatId: chatId,
+        };
+        await sendTelegramOtpMessage(chatId, verifiedPhone, code, firstName, { removeKeyboard: true });
+      }
+    } else {
+      // Not verified or fresh request: prompt with native Telegram "Share Contact" button
+      await askUserToShareContact(chatId, firstName);
+    }
+    return;
+  }
+
+  // 2. User shared contact: securely fetch real phone number
+  const contact = msg.contact;
+  const contactPhone = contact.phone_number ? String(contact.phone_number).trim() : "";
+
+  // Security check: ensure user didn't forward someone else's contact card
+  if (contact.user_id && msg.from?.id && String(contact.user_id) !== String(msg.from.id)) {
+    await askUserToShareContact(chatId, firstName);
+    return;
+  }
+
+  const verifiedTgPhone = normalizePhone(contactPhone) || contactPhone.replace(/\D/g, "");
+  if (!verifiedTgPhone) {
+    await askUserToShareContact(chatId, firstName);
+    return;
+  }
+
+  const intlTgPhone = toInternationalPhone(contactPhone) || verifiedTgPhone;
+  const normTgPhone = normalizePhone(contactPhone) || verifiedTgPhone;
+
+  // 3. Phone Number Matching Check:
+  // Compare user's verified Telegram phone against the specific phone number that initiated the request inside the app
+  let expectedAppPhone = chatPendingRequestedPhone[String(chatId)]?.phone || "";
+  if (!expectedAppPhone && lastPendingPhone) {
+    expectedAppPhone = lastPendingPhone;
+  }
+
+  if (expectedAppPhone && !phonesMatch(verifiedTgPhone, expectedAppPhone)) {
+    // 4. Reject Unauthorized Requests:
+    // If a different Telegram account or number requests the code, reject it
+    await sendTelegramRejectMessage(chatId);
+    return;
+  }
+
+  // Both phone numbers match perfectly (or verified user established)
+  saveVerifiedPhoneChatMapping(verifiedTgPhone, chatId);
+  saveVerifiedPhoneChatMapping(intlTgPhone, chatId);
+  saveVerifiedPhoneChatMapping(normTgPhone, chatId);
+  delete chatPendingRequestedPhone[String(chatId)];
+
+  // Generate dynamic 6-digit OTP
+  const code = Math.floor(100000 + Math.random() * 900000).toString();
+  const now = Date.now();
+  const expiresAt = now + 2 * 60 * 1000;
+  const newSession: OtpSession = {
+    phone: intlTgPhone || normTgPhone || verifiedTgPhone,
+    code,
+    createdAt: now,
+    expiresAt,
+    verified: false,
+    telegramChatId: chatId,
+  };
+  otpStore[verifiedTgPhone] = newSession;
+  otpStore[intlTgPhone] = newSession;
+  otpStore[normTgPhone] = newSession;
+
+  // Send the OTP code only now that verification is complete
+  await sendTelegramOtpMessage(chatId, intlTgPhone || verifiedTgPhone, code, firstName, { removeKeyboard: true });
+}
+
 // Background Telegram Poller with Mandatory Contact Verification
 let lastTelegramUpdateId = 0;
 let isPollingActive = false;
@@ -322,112 +448,7 @@ async function pollTelegramUpdates() {
         if (update.update_id >= lastTelegramUpdateId) {
           lastTelegramUpdateId = update.update_id;
         }
-
-        const msg = update.message || update.edited_message;
-        if (!msg || !msg.chat) continue;
-
-        const chatId = msg.chat.id;
-        latestTelegramChatId = chatId;
-        const text = (msg.text || "").trim();
-        const firstName = msg.from?.first_name || "";
-
-        // Check if message has start parameter: e.g. /start RESET_0961900440, /start pass_0961900440 or /start VERIFY_STORE_09...
-        const matchVerify = text.match(/(?:pass|RESET|VERIFY(?:_STORE)?)_?(\d+)/i);
-        if (matchVerify && matchVerify[1]) {
-          const reqPhone = normalizePhone(matchVerify[1]) || matchVerify[1];
-          chatPendingRequestedPhone[String(chatId)] = { phone: reqPhone, timestamp: Date.now() };
-        }
-
-        // 1. Mandatory Telegram Contact Verification Check:
-        // Do NOT send OTP codes to any user who simply sends "/start" or plain text!
-        if (!msg.contact) {
-          // If the user hasn't shared their contact, require them to share contact first
-          const verifiedPhone = telegramChatToVerifiedPhone[String(chatId)];
-          const targetPhone = chatPendingRequestedPhone[String(chatId)]?.phone || (lastPendingPhone ? normalizePhone(lastPendingPhone) : "");
-
-          if (verifiedPhone && targetPhone) {
-            // If previously verified, check if verified phone matches the requested phone
-            if (!phonesMatch(verifiedPhone, targetPhone)) {
-              await sendTelegramRejectMessage(chatId);
-            } else {
-              // Verified and matching: generate and send OTP
-              const code = Math.floor(100000 + Math.random() * 900000).toString();
-              const now = Date.now();
-              const expiresAt = now + 2 * 60 * 1000;
-              otpStore[verifiedPhone] = {
-                phone: verifiedPhone,
-                code,
-                createdAt: now,
-                expiresAt,
-                verified: false,
-                telegramChatId: chatId,
-              };
-              await sendTelegramOtpMessage(chatId, verifiedPhone, code, firstName, { removeKeyboard: true });
-            }
-          } else {
-            // Not verified or fresh request: prompt with native Telegram "Share Contact" button
-            await askUserToShareContact(chatId, firstName);
-          }
-          continue;
-        }
-
-        // 2. User shared contact: securely fetch real phone number
-        const contact = msg.contact;
-        const contactPhone = contact.phone_number ? String(contact.phone_number).trim() : "";
-
-        // Security check: ensure user didn't forward someone else's contact card
-        if (contact.user_id && msg.from?.id && String(contact.user_id) !== String(msg.from.id)) {
-          await askUserToShareContact(chatId, firstName);
-          continue;
-        }
-
-        const verifiedTgPhone = normalizePhone(contactPhone) || contactPhone.replace(/\D/g, "");
-        if (!verifiedTgPhone) {
-          await askUserToShareContact(chatId, firstName);
-          continue;
-        }
-
-        const intlTgPhone = toInternationalPhone(contactPhone) || verifiedTgPhone;
-        const normTgPhone = normalizePhone(contactPhone) || verifiedTgPhone;
-
-        // 3. Phone Number Matching Check:
-        // Compare user's verified Telegram phone against the specific phone number that initiated the request inside the app
-        let expectedAppPhone = chatPendingRequestedPhone[String(chatId)]?.phone || "";
-        if (!expectedAppPhone && lastPendingPhone) {
-          expectedAppPhone = lastPendingPhone;
-        }
-
-        if (expectedAppPhone && !phonesMatch(verifiedTgPhone, expectedAppPhone)) {
-          // 4. Reject Unauthorized Requests:
-          // If a different Telegram account or number requests the code, reject it
-          await sendTelegramRejectMessage(chatId);
-          continue;
-        }
-
-        // Both phone numbers match perfectly (or verified user established)
-        saveVerifiedPhoneChatMapping(verifiedTgPhone, chatId);
-        saveVerifiedPhoneChatMapping(intlTgPhone, chatId);
-        saveVerifiedPhoneChatMapping(normTgPhone, chatId);
-        delete chatPendingRequestedPhone[String(chatId)];
-
-        // Generate dynamic 6-digit OTP
-        const code = Math.floor(100000 + Math.random() * 900000).toString();
-        const now = Date.now();
-        const expiresAt = now + 2 * 60 * 1000;
-        const newSession: OtpSession = {
-          phone: intlTgPhone || normTgPhone || verifiedTgPhone,
-          code,
-          createdAt: now,
-          expiresAt,
-          verified: false,
-          telegramChatId: chatId,
-        };
-        otpStore[verifiedTgPhone] = newSession;
-        otpStore[intlTgPhone] = newSession;
-        otpStore[normTgPhone] = newSession;
-
-        // Send the OTP code only now that verification is complete
-        await sendTelegramOtpMessage(chatId, intlTgPhone || verifiedTgPhone, code, firstName, { removeKeyboard: true });
+        await processTelegramUpdate(update);
       }
     }
   } catch (err: any) {
@@ -437,6 +458,37 @@ async function pollTelegramUpdates() {
     setTimeout(pollTelegramUpdates, 2000);
   }
 }
+
+// Telegram Webhook receiver endpoint
+app.post(["/api/telegram", "/api/telegram/webhook"], async (req, res) => {
+  try {
+    const update = req.body;
+    if (update && (update.update_id !== undefined || update.message)) {
+      await processTelegramUpdate(update);
+    }
+    res.json({ ok: true });
+  } catch (err: any) {
+    console.warn("Telegram Webhook processing error:", err?.message);
+    res.json({ ok: true });
+  }
+});
+
+// Set Telegram Webhook trigger endpoint
+app.get("/api/telegram/set-webhook", async (_req, res) => {
+  const result = await setTelegramWebhook();
+  res.json(result || { ok: false });
+});
+
+// Check Telegram Webhook info
+app.get("/api/telegram/webhook-info", async (_req, res) => {
+  try {
+    const response = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/getWebhookInfo`);
+    const result = await response.json();
+    res.json(result);
+  } catch (error: any) {
+    res.status(500).json({ ok: false, error: error?.message });
+  }
+});
 
 // Health check endpoint
 app.get("/api/health", (_req, res) => {
@@ -1573,8 +1625,10 @@ async function startServer() {
     });
   }
 
-  app.listen(PORT, "0.0.0.0", () => {
+  app.listen(PORT, "0.0.0.0", async () => {
     console.log(`Gr/POS server running on port ${PORT}`);
+    // Server ሲጀምር Webhook ያስተካክላል
+    await setTelegramWebhook();
     // Start background Telegram poller
     pollTelegramUpdates();
   });

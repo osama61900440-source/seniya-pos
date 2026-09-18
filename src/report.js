@@ -18,41 +18,59 @@ export function officialStampSnippet(profile, options) {
   var stampImg = profile.trademarkStamp || profile.trademarkLogo || "";
   var shopName = profile.shopName || "የድርጅት ማህተም";
   var tin = profile.tin ? ("TIN: " + profile.tin) : "";
-  var opacity = options.opacity !== undefined ? options.opacity : 0.88;
-  var rotation = options.rotation || "-8deg";
-  var isInline = !!options.inline;
-  var posStyle = isInline
-    ? "display:inline-flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; pointer-events:none; page-break-inside:avoid;"
-    : "position:absolute; bottom:15px; right:20px; text-align:center; pointer-events:none; z-index:25; page-break-inside:avoid;";
+  var opacity = options.opacity !== undefined ? options.opacity : 0.92;
+  var rotation = options.rotation || "-7deg";
 
   if (stampImg) {
-    return '<div class="official-stamp-container" style="' + posStyle + '">' +
+    return '<div class="official-stamp-container" style="display:inline-flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; pointer-events:none; page-break-inside:avoid; break-inside:avoid;">' +
       '<div style="position:relative; display:inline-block;">' +
-        '<img src="' + escapeHtml(stampImg) + '" alt="Official Stamp" style="width:105px; height:105px; border-radius:50%; object-fit:cover; opacity:' + opacity + '; transform:rotate(' + rotation + '); filter:drop-shadow(0 2px 4px rgba(0,0,0,0.12)); border:2px solid #1e3a8a;" />' +
+        '<img src="' + escapeHtml(stampImg) + '" alt="Official Stamp" style="width:95px; height:95px; border-radius:50%; object-fit:cover; opacity:' + opacity + '; transform:rotate(' + rotation + '); filter:drop-shadow(0 2px 4px rgba(0,0,0,0.12)); border:2.5px solid #1e3a8a;" />' +
       '</div>' +
-      '<div style="font-size:8px; font-weight:800; color:#1e3a8a; letter-spacing:0.5px; margin-top:2px; text-transform:uppercase;">ህጋዊ ማህተም / OFFICIAL STAMP</div>' +
+      '<div style="font-size:7.5px; font-weight:800; color:#1e3a8a; letter-spacing:0.5px; margin-top:2px; text-transform:uppercase;">ህጋዊ ማህተም / OFFICIAL STAMP</div>' +
     '</div>';
   }
 
-  return '<div class="official-stamp-container" style="' + posStyle + '">' +
-    '<div style="width:105px; height:105px; border-radius:50%; border:2.5px dashed #1e3a8a; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:6px; color:#1e3a8a; opacity:' + opacity + '; transform:rotate(' + rotation + '); background:rgba(239,246,255,0.45); box-shadow:inset 0 0 0 1.5px #1e3a8a;">' +
-      '<div style="font-size:8px; font-weight:900; letter-spacing:0.6px; text-transform:uppercase;">★ ህጋዊ ማህተም ★</div>' +
-      '<div style="font-size:9.5px; font-weight:800; margin:2px 0; text-align:center; line-height:1.1; max-width:85px; overflow:hidden; text-overflow:ellipsis;">' + escapeHtml(shopName) + '</div>' +
-      (tin ? '<div style="font-size:8px; font-weight:700;">' + escapeHtml(tin) + '</div>' : '') +
-      '<div style="font-size:7.5px; margin-top:2px; color:#2563eb; font-weight:700;">OFFICIAL STAMP</div>' +
+  return '<div class="official-stamp-container" style="display:inline-flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; pointer-events:none; page-break-inside:avoid; break-inside:avoid;">' +
+    '<div style="width:95px; height:95px; border-radius:50%; border:2px dashed #1e3a8a; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:5px; color:#1e3a8a; opacity:' + opacity + '; transform:rotate(' + rotation + '); background:rgba(239,246,255,0.7); box-shadow:inset 0 0 0 1px #1e3a8a;">' +
+      '<div style="font-size:7.5px; font-weight:900; letter-spacing:0.5px; text-transform:uppercase;">★ ይፋዊ ማህተም ★</div>' +
+      '<div style="font-size:9px; font-weight:800; margin:2px 0; text-align:center; line-height:1.15; max-width:80px; overflow:hidden; text-overflow:ellipsis;">' + escapeHtml(shopName) + '</div>' +
+      (tin ? '<div style="font-size:7.5px; font-weight:700;">' + escapeHtml(tin) + '</div>' : '') +
+      '<div style="font-size:7px; margin-top:2px; color:#2563eb; font-weight:700;">OFFICIAL STAMP</div>' +
     '</div>' +
   '</div>';
 }
 
 export function pageWrap(pageNum, totalPages, titleAm, titleEn, bodyHtml, profile) {
   var p = profile || _activeProfile;
-  var stampHtml = p ? officialStampSnippet(p) : "";
-  return '<section class="rpage" style="position:relative; min-height:260mm; padding-bottom:30mm; box-sizing:border-box;">' +
-    '<div class="rpage-head"><div class="rkicker">ገፅ ' + pageNum + '/' + totalPages + '</div>' +
-    '<h1>' + escapeHtml(titleAm) + '</h1><div class="rsub">' + escapeHtml(titleEn) + '</div></div>' +
+  var stampSnippet = p ? officialStampSnippet(p, { inline: true }) : "";
+  var managerTitle = p ? (p.managerName || p.ownerFullName || p.ownerName || "ሥራ አስኪያጅ") : "ሥራ አስኪያጅ";
+
+  var authFooterHtml = '<div class="rpage-footer-auth" style="margin-top:22px; padding-top:14px; border-top:1.5px dashed #cbd5e1; display:flex; justify-content:space-between; align-items:center; gap:16px; page-break-inside:avoid; break-inside:avoid;">' +
+    '<div style="font-size:11px; color:#475569; line-height:1.6;">' +
+      '<div style="font-weight:800; color:#1e3a8a; font-size:11.5px; margin-bottom:2px;">የፋይናንስና ኦዲት ማረጋገጫ (Official Verification)</div>' +
+      '<div><b>ያረጋገጠው ኃላፊ፦</b> ' + escapeHtml(managerTitle) + '</div>' +
+      '<div style="margin-top:14px; border-bottom:1px dotted #94a3b8; width:150px;"></div>' +
+      '<div style="font-size:9.5px; color:#94a3b8; margin-top:2px;">ፊርማና ቀን / Signature & Date</div>' +
+    '</div>' +
+    '<div style="flex-shrink:0;">' +
+      stampSnippet +
+    '</div>' +
+  '</div>';
+
+  return '<section class="rpage" style="box-sizing:border-box;">' +
+    '<div class="rpage-head">' +
+      '<div>' +
+        '<h1>' + escapeHtml(titleAm) + '</h1>' +
+        '<div class="rsub">' + escapeHtml(titleEn) + '</div>' +
+      '</div>' +
+      '<div style="text-align:right; flex-shrink:0;">' +
+        '<span class="rpage-badge">ገፅ ' + pageNum + '/' + totalPages + '</span>' +
+        '<div style="font-size:10px; color:#64748b; font-weight:700; margin-top:3px;">' + escapeHtml(p ? (p.shopName || "") : "") + '</div>' +
+      '</div>' +
+    '</div>' +
     '<div class="rpage-body">' + bodyHtml + '</div>' +
-    stampHtml +
-    '</section>';
+    authFooterHtml +
+  '</section>';
 }
 
 export function rTable(headers, rows, opts) {
@@ -78,7 +96,7 @@ export function rHighlight(label, value, colorClass) {
 }
 
 export function rKV(label, value) {
-  return '<div class="rkv"><span>' + escapeHtml(label) + '</span><b>' + escapeHtml(value) + '</b></div>';
+  return '<div class="rkv-row"><span class="rkv-key">' + escapeHtml(label) + '</span><span class="rkv-val">' + escapeHtml(value) + '</span></div>';
 }
 
 export function buildReportHtml(data, options) {
@@ -225,24 +243,30 @@ export function buildReportHtml(data, options) {
   var pageList = [];
 
   // 1. Executive Overview (ALWAYS Page 1)
-  var p1Body = rHighlight("የሪፖርት ዘመን (Period)", periodLabelAm, "navy") +
+  var p1KVRows = [
+    ["የሪፖርት ሽፋን", periodCoverageAm.replace(/^ሪፖርቱ የተሸፈነው ጊዜ፦\s*/, "")],
+    ["የመጀመሪያ ምዝገባ ቀን", hist.firstDateEthStr],
+    ["አጠቃላይ የመዝገብ ቆይታ", hist.durationText],
+    ["የተመዘገቡ ንቁ ዓመታት", activeYears.map(function (y) { return y + " ዓ.ም"; }).join(", ")],
+    ["የተከናወኑ ግብይቶች ብዛት", periodSales.length + " ሽያጮች / " + periodExpenses.length + " ወጪዎች"],
+    ["የድርጅቱ ስም", profile.shopName || "---"],
+    ["የባለቤቱ ስም", profile.ownerFullName || profile.ownerName || "---"],
+    ["የንግድ ፈቃድ ቁጥር", profile.tradeLicenseNumber || profile.license || "---"],
+    ["የግብር ከፋይ መለያ (TIN)", profile.tinNumber || profile.tin || "---"],
+    ["ዋና የንግድ ዘርፍ", profile.businessCategory || profile.businessSector || "የጅምላና የችርቻሮ ንግድ"],
+    ["የቅርንጫፎችና መጋዘኖች ብዛት", (data.locations ? data.locations.length : 1) + " (ሱቆችና መጋዘኖች)"],
+    ["የተመዘገቡ የዕቃ አይነቶች", String(data.items.length) + " አይነት"]
+  ];
+
+  var p1Body = '<div class="rhl-grid">' +
+    rHighlight("የሪፖርት ዘመን (Period)", periodLabelAm, "navy") +
     rHighlight("የተመዘገበ ጠቅላላ ሽያጭ", fmt(periodStats.revenue), "green") +
     rHighlight("የተጣራ ትርፍ (Net Profit)", fmt(periodStats.profit), periodStats.profit >= 0 ? "green" : "red") +
     rHighlight("ጠቅላላ የካፒታል ሀብት (Valuation)", fmt(capitalNow), "blue") +
+    '</div>' +
     '<h2>የንግድ ድርጅቱ አጠቃላይ መግለጫና የሪፖርት ሽፋን</h2>' +
     '<p class="rpara">ይህ ይፋዊ የፋይናንስ ሪፖርት <b>' + escapeHtml(periodCoverageAm) + '</b> ከመረጃ ቋቱ የተመዘገቡ ተጨባጭ የሽያጭ፣ የወጪ፣ የተጣራ ትርፍ እና የካፒታል ክምችት ዝርዝሮችን በቀጥታ በማውጣት የሚያቀርብ ሲሆን፤ በተለይም ለባንክ ብድርና የፋይናንስ ተቋማት የብቃት ማረጋገጫ ተብሎ በከፍተኛ ጥንቃቄ የተዘጋጀ ነው። ሪፖርቱ ምንም አይነት ምናባዊ መረጃ ሳያካትት በተመዘገቡ እውነተኛ ግብይቶች ላይ ብቻ የተመሰረተ ነው።</p>' +
-    rKV("የሪፖርት ሽፋን ጊዜ", periodCoverageAm) +
-    rKV("የመጀመሪያ ምዝገባ ቀን", hist.firstDateEthStr) +
-    rKV("አጠቃላይ የመዝገብ ቆይታ", hist.durationText) +
-    rKV("የተመዘገቡ ንቁ ዓመታት", activeYears.map(function (y) { return y + " ዓ.ም"; }).join(", ")) +
-    rKV("የተከናወኑ ግብይቶች ብዛት", periodSales.length + " ሽያጮች / " + periodExpenses.length + " ወጪዎች") +
-    rKV("የድርጅቱ ስም", profile.shopName || "---") +
-    rKV("የባለቤቱ ስም", profile.ownerFullName || profile.ownerName || "---") +
-    rKV("የንግድ ፈቃድ ቁጥር", profile.tradeLicenseNumber || profile.license || "---") +
-    rKV("የግብር ከፋይ መለያ (TIN)", profile.tinNumber || profile.tin || "---") +
-    rKV("ዋና የንግድ ዘርፍ", profile.businessCategory || profile.businessSector || "የጅምላና የችርቻሮ ንግድ") +
-    rKV("የቅርንጫፎችና መጋዘኖች ብዛት", (data.locations ? data.locations.length : 1) + " (ሱቆችና መጋዘኖች)") +
-    rKV("የተመዘገቡ የዕቃ አይነቶች", String(data.items.length) + " አይነት");
+    '<div class="rkv-grid">' + p1KVRows.map(function (r) { return rKV(r[0], r[1]); }).join("") + '</div>';
 
   pageList.push({
     titleAm: "የባንክና የፋይናንስ ሪፖርት ማጠቃለያ",
@@ -267,9 +291,11 @@ export function buildReportHtml(data, options) {
       ]);
     });
 
-    var p2Body = rHighlight("የተመዘገቡ ንቁ ዓመታት", activeYears.length + " ዓመታት (" + activeYears.join(", ") + " ዓ.ም)", "navy") +
+    var p2Body = '<div class="rhl-grid">' +
+      rHighlight("የተመዘገቡ ንቁ ዓመታት", activeYears.length + " ዓመታት (" + activeYears.join(", ") + " ዓ.ም)", "navy") +
       rHighlight("ጠቅላላ የተመዘገበ ሽያጭ", fmt(periodStats.revenue), "green") +
       rHighlight("የትርፍ መልሶ ማዋል (Reinvestment)", "70% በቀጥታ ወደ ስራ ካፒታል", "blue") +
+      '</div>' +
       '<h2>የተመዘገቡ ንቁ ዓመታት የፋይናንስ ማትሪክስ ንጽጽር ሰንጠረዥ</h2>' +
       rTable(["ዓመተ ምህረት", "ጠቅላላ ሽያጭ (ETB)", "የሽያጭ ዕድገት %", "የዕቃ ወጪ (COGS)", "የተጣራ ማርጂን %", "የትርፍ ካፒታል (70%)", "የስራ ካፒታል/ሀብት"], yoyTableRows, { boldCol: [1, 2, 6] }) +
       '<h2>📈 የባንክ ብድር ግምገማ እና የካፒታል ዕድገት ትንተና</h2>' +
@@ -325,9 +351,11 @@ export function buildReportHtml(data, options) {
     }
   }
 
-  var pSalesBody = rHighlight("የዛሬ ሽያጭ (" + todayISOStr + ")", fmt(todayStats.revenue), "blue") +
+  var pSalesBody = '<div class="rhl-grid">' +
+    rHighlight("የዛሬ ሽያጭ (" + todayISOStr + ")", fmt(todayStats.revenue), "blue") +
     rHighlight("የ" + ethLabel(todayEth.year, todayEth.month) + " ጠቅላላ ሽያጭ", fmt(monthStats.revenue), "green") +
     rHighlight("የተመረጠው ዘመን ጠቅላላ ሽያጭ", fmt(periodStats.revenue), "navy") +
+    '</div>' +
     '<h2>በወር የተከፋፈለ ሽያጭ</h2>' +
     rTable(["ወር", "ጠቅላላ ሽያጭ (ETB)", "የግብይት ብዛት"], salesMonthlyRows, { boldCol: [1] });
 
@@ -386,9 +414,11 @@ export function buildReportHtml(data, options) {
     return r[1] !== "0.00 ብር" || periodStats.expenseTotal === 0;
   });
 
-  var pExpBody = rHighlight("የዛሬ ወጪ", fmt(todayStats.expenseTotal), "red") +
+  var pExpBody = '<div class="rhl-grid">' +
+    rHighlight("የዛሬ ወጪ", fmt(todayStats.expenseTotal), "red") +
     rHighlight("የ" + ethLabel(todayEth.year, todayEth.month) + " ጠቅላላ ወጪ", fmt(monthStats.expenseTotal), "red") +
     rHighlight("የተመረጠው ዘመን ጠቅላላ ወጪ", fmt(periodStats.expenseTotal), "navy") +
+    '</div>' +
     '<h2>ወጪ በምድብ (' + periodLabelAm + ')</h2>' +
     rTable(["ምድብ", "መጠን (ETB)", "%"], catRows, { boldCol: [1] }) +
     '<h2>ወጪ በወር</h2>' +
@@ -406,8 +436,10 @@ export function buildReportHtml(data, options) {
     var sellPrice = (typeof it.sellPriceCents === "number" && it.sellPriceCents > 0) ? it.sellPriceCents : (it.costPriceCents || 0);
     return [it.name, fmt(it.costPriceCents), fmt(it.sellPriceCents), String(stock), fmt(Math.max(0, stock) * sellPrice), stock <= 0 ? "አልቋል" : (stock <= 5 ? "እያለቀ ነው" : "በቂ")];
   });
-  var pInvBody = rHighlight("የአሁኑ ጠቅላላ የዕቃ ክምችት እሴት", fmt(invValueNow), "green") +
+  var pInvBody = '<div class="rhl-grid">' +
+    rHighlight("የአሁኑ ጠቅላላ የዕቃ ክምችት እሴት", fmt(invValueNow), "green") +
     rHighlight("የተመዘገቡ ዕቃ አይነቶች", String(data.items.length) + " አይነት", "navy") +
+    '</div>' +
     rTable(["ስም", "የገዢ ዋጋ", "የመሸጫ ዋጋ", "ቀሪ ስቶክ", "እሴት", "ሁኔታ"], invRows, { boldCol: [4] });
 
   pageList.push({
@@ -423,8 +455,10 @@ export function buildReportHtml(data, options) {
   var allocPeriodRows = (data.allocations || []).map(function (a) {
     return [a.name, a.percent + "%", periodStats.profit > 0 ? fmt(Math.round(periodStats.profit * (a.percent / 100))) : "0.00 ብር"];
   });
-  var pAllocBody = rHighlight("የ" + ethLabel(todayEth.year, todayEth.month) + " የተጣራ ትርፍ", fmt(monthStats.profit), monthStats.profit >= 0 ? "green" : "red") +
+  var pAllocBody = '<div class="rhl-grid">' +
+    rHighlight("የ" + ethLabel(todayEth.year, todayEth.month) + " የተጣራ ትርፍ", fmt(monthStats.profit), monthStats.profit >= 0 ? "green" : "red") +
     rHighlight("የተመረጠው ዘመን የተጣራ ትርፍ", fmt(periodStats.profit), periodStats.profit >= 0 ? "green" : "red") +
+    '</div>' +
     '<h2>ወርሃዊ ክፍፍል (' + ethLabel(todayEth.year, todayEth.month) + ')</h2>' + rTable(["ክፍል", "መቶኛ", "የገንዘብ መጠን"], allocMonthRows, { boldCol: [2] }) +
     (monthStats.profit <= 0 ? '<div class="rnote">⚠️ በዚህ ወር ትርፍ ስላልተገኘ ክፍፍሉ 0 ነው።</div>' : "") +
     '<h2>' + periodLabelAm + ' ትርፍ ክፍፍል</h2>' + rTable(["ክፍል", "መቶኛ", "የገንዘብ መጠን"], allocPeriodRows, { boldCol: [2] }) +
@@ -438,10 +472,12 @@ export function buildReportHtml(data, options) {
 
   // 7. የካፒታል ክምችት ግብ ክትትል ሪፖርት
   var pGoalBody = '<div class="rnote">🔗 መነሻ፦ ' + gt.capitalPct + '% ካፒታል ክፍፍል × የ' + escapeHtml(ethLabel(gt.ethYear, gt.ethMonth)) + ' ትክክለኛ ትርፍ — ከምንም ያልተነሳ፣ ራሱ ከመዝገቡ የተሰላ።</div>' +
+    '<div class="rhl-grid">' +
     rHighlight("የወር ግብ", fmt(gt.monthlyGoalCents), "navy") +
     rHighlight("እስካሁን ማግኘት የነበረበት (ቀን " + gt.daysElapsed + "/" + gt.totalDaysInMonth + ")", fmt(gt.paceToDateCents), "amber") +
     rHighlight("እስካሁን ወደ ካፒታል የተመደበው", fmt(gt.actualCents), gt.onTrack ? "green" : "red") +
     rHighlight("እድገት", gt.pctOfMonthlyGoal + "%", "blue") +
+    '</div>' +
     (gt.onTrack ? '<div class="rgoal-ok">✅ በእቅዱ መሰረት እየሄዱ ነው!</div>' : '<div class="rgoal-warn">⚠️ ግብ አልተሳካም! ጉድለት፦ ' + escapeHtml(fmt(gt.shortfallCents)) + '</div>');
 
   pageList.push({
@@ -452,10 +488,15 @@ export function buildReportHtml(data, options) {
 
   // 8. የካፒታል አጠቃቀም ሪፖርት
   function cuBlock(cu) {
-    return rKV("ለካፒታል የተመደበ (" + cu.capitalPct + "%)", fmt(cu.allocatedCents)) +
-      rKV("✅ ለስራ/ለዕቃ መግዣ የዋለ", fmt(cu.usedCents)) +
-      rKV("🕒 ያልተጠቀሙበት/በእጅ ያለ", fmt(cu.idleCents)) +
-      (cu.overageCents > 0 ? rKV("ከመድቡ በላይ የተገዛ", fmt(cu.overageCents)) : "") +
+    var rows = [
+      ["ለካፒታል የተመደበ (" + cu.capitalPct + "%)", fmt(cu.allocatedCents)],
+      ["✅ ለስራ/ለዕቃ መግዣ የዋለ", fmt(cu.usedCents)],
+      ["🕒 ያልተጠቀሙበት/በእጅ ያለ", fmt(cu.idleCents)]
+    ];
+    if (cu.overageCents > 0) {
+      rows.push(["ከመድቡ በላይ የተገዛ", fmt(cu.overageCents)]);
+    }
+    return '<div class="rkv-grid">' + rows.map(function(r) { return rKV(r[0], r[1]); }).join("") + '</div>' +
       '<div class="rnote">' + cu.usedPct + '% ስራ ላይ ውሏል</div>';
   }
   var pCuBody = '<div class="rnote">* \'ለስራ/ለዕቃ መግዣ የዋለው\' የሚሰላው በተጨባጭ ከተመዘገቡ አዲስ የዕቃ ግዢ ደረሰኞች ድምር ብቻ ነው። አዲስ ግዢ እስካልተመዘገበ ድረስ የተመደበው ካፒታል ሙሉ በሙሉ በ\'ያልተጠቀሙበት / በእጅ ያለ ካፒታል\' ስር ይቆያል።</div>' +
@@ -471,8 +512,10 @@ export function buildReportHtml(data, options) {
   // 9. የንግድ አፈጻጸም እና ጠንካራ ጎኖች ማጠቃለያ ሪፖርት
   var totalTx = periodSales.length;
   var supplierRows = (lc.suppliers || []).map(function (s) { return [s.name, s.address || "-"]; });
-  var pPerfBody = rHighlight("የተመረጠው ዘመን ጠቅላላ የግብይት ብዛት", totalTx + " ግብይቶች", "navy") +
+  var pPerfBody = '<div class="rhl-grid">' +
+    rHighlight("የተመረጠው ዘመን ጠቅላላ የግብይት ብዛት", totalTx + " ግብይቶች", "navy") +
     rHighlight("በጣም የተሸጠው ዕቃ (ዛሬ)", (todayStats.topName ? (todayStats.topName + " (" + todayStats.topQty + ")") : "ምንም አልተሸጠም"), "amber") +
+    '</div>' +
     '<h2>ዋና ዋና አቅራቢዎች</h2>' + rTable(["አቅራቢ ስም", "አድራሻ"], supplierRows) +
     '<h2>የተወዳዳሪነት ጥንካሬዎች</h2><p class="rpara">' + escapeHtml((lc.marketAnalysis && lc.marketAnalysis.trim()) || "ምንም የገበያ ትንተና አልተመዘገበም።") + '</p>';
 
@@ -484,12 +527,19 @@ export function buildReportHtml(data, options) {
 
   // 10. የፋይናንስ ቀሪ ሂሳብ እና የባንክ ማስታወሻ ሪፖርት
   var capitalDiff = capitalNow - capitalPeriodStart;
-  var pBalBody = rHighlight("ካፒታል በዘመኑ መጀመሪያ", fmt(capitalPeriodStart), "blue") +
+  var pBalRows = [
+    ["ካሽ", fmt(periodPay.cash)],
+    ["ባንክ ትራንስፈር", fmt(periodPay.bank)],
+    ["ዱቤ (ጠቅላላ)", fmt(periodPay.credit)],
+    ["⚠️ ያልተከፈለ ዱቤ", fmt(periodPay.creditOutstanding)]
+  ];
+  var pBalBody = '<div class="rhl-grid">' +
+    rHighlight("ካፒታል በዘመኑ መጀመሪያ", fmt(capitalPeriodStart), "blue") +
     rHighlight("ካፒታል አሁን", fmt(capitalNow), "navy") +
     rHighlight("የካፒታል ለውጥ", (capitalDiff >= 0 ? "+" : "") + fmt(capitalDiff), capitalDiff >= 0 ? "green" : "red") +
+    '</div>' +
     '<h2>የክፍያ ፍሰት (' + periodLabelAm + ')</h2>' +
-    rKV("ካሽ", fmt(periodPay.cash)) + rKV("ባንክ ትራንስፈር", fmt(periodPay.bank)) + rKV("ዱቤ (ጠቅላላ)", fmt(periodPay.credit)) +
-    rKV("⚠️ ያልተከፈለ ዱቤ", fmt(periodPay.creditOutstanding)) +
+    '<div class="rkv-grid">' + pBalRows.map(function(r) { return rKV(r[0], r[1]); }).join("") + '</div>' +
     '<div class="' + (recon.ok ? "rgoal-ok" : "rgoal-warn") + '">' + (recon.ok ? "✓ ተረጋግጧል፦ ካሽ + ባንክ + ዱቤ = ጠቅላላ ገቢ" : "⚠️ ማሳሰቢያ፦ ቁጥሮች አልተገጣጠሙም") + '</div>';
 
   pageList.push({
@@ -503,13 +553,16 @@ export function buildReportHtml(data, options) {
     ["የድርጅት ስም", profile.shopName], ["የማናጀር ስም", profile.ownerName], ["TIN ቁጥር", profile.tin],
     ["የንግድ ፈቃድ ቁጥር", profile.license], ["የስራ አድራሻ", profile.address], ["ስልክ ቁጥር", profile.phone]
   ].filter(function (r) { return r[1]; });
-  var pSummBody = '<h2>የድርጅት መገለጫ</h2>' + profileRows.map(function (r) { return rKV(r[0], r[1]); }).join("") +
+  var pSummBody = '<h2>የድርጅት መገለጫ</h2>' +
+    '<div class="rkv-grid">' + profileRows.map(function (r) { return rKV(r[0], r[1]); }).join("") + '</div>' +
     '<h2 style="margin-top:14px">' + periodLabelAm + ' አጠቃላይ ውጤት</h2>' +
+    '<div class="rhl-grid">' +
     rHighlight("ጠቅላላ ገቢ", fmt(periodStats.revenue), "navy") +
     rHighlight("ጠቅላላ ወጪ", fmt(periodStats.expenseTotal), "red") +
     rHighlight("የተጣራ ትርፍ", fmt(periodStats.profit), periodStats.profit >= 0 ? "green" : "red") +
     rHighlight("ጠቅላላ ካፒታል", fmt(capitalNow), "blue") +
     rHighlight("የካፒታል ግብ እድገት", gt.pctOfMonthlyGoal + "%", "amber") +
+    '</div>' +
     '<div class="rfootnote">ይህ ሪፖርት በ' + todayISOStr + ' ' + escapeHtml(ethLabel(todayEth.year, todayEth.month)) + ' ' + todayEth.year + ' ዓ.ም ላይ በራስ-ሰር ከንግድ ስራው መዝገብ የተዘጋጀ ነው።</div>';
 
   pageList.push({
@@ -542,17 +595,17 @@ export function buildReportHtml(data, options) {
   if (profile.trademarkLogo || profile.managerPhoto) {
     logoBadge = '<div style="float:right;margin-left:14px;margin-bottom:10px;display:flex;gap:10px;align-items:flex-end;">';
     if (profile.trademarkLogo) {
-      logoBadge += '<div style="text-align:center;"><img src="' + escapeHtml(profile.trademarkLogo) + '" style="width:95px;height:95px;border-radius:50%;border:2px solid #1e3a8a;padding:2px;object-fit:cover;"><div style="font-size:9.5px;color:#64748b;margin-top:3px;">የትሬድማርክ ሎጎ / ማህተም</div></div>';
+      logoBadge += '<div style="text-align:center;"><img src="' + escapeHtml(profile.trademarkLogo) + '" style="width:90px;height:90px;border-radius:50%;border:2px solid #1e3a8a;padding:2px;object-fit:cover;"><div style="font-size:9px;color:#64748b;margin-top:3px;">የትሬድማርክ ሎጎ / ማህተም</div></div>';
     }
     if (profile.managerPhoto) {
-      logoBadge += '<div style="text-align:center;"><img src="' + escapeHtml(profile.managerPhoto) + '" style="width:85px;height:85px;border-radius:10px;border:1px solid #cbd5e1;object-fit:cover;"><div style="font-size:9.5px;color:#64748b;margin-top:3px;">የሥራ አስኪያጅ ፎቶ</div></div>';
+      logoBadge += '<div style="text-align:center;"><img src="' + escapeHtml(profile.managerPhoto) + '" style="width:80px;height:80px;border-radius:10px;border:1px solid #cbd5e1;object-fit:cover;"><div style="font-size:9px;color:#64748b;margin-top:3px;">የሥራ አስኪያጅ ፎቶ</div></div>';
     }
     logoBadge += '</div>';
   }
 
   var pProfBody = logoBadge +
     '<h2>የንግድ ድርጅት ዝርዝር መረጃ</h2>' +
-    profileFullRows.map(function (r) { return rKV(r[0], r[1]); }).join("") +
+    '<div class="rkv-grid">' + profileFullRows.map(function (r) { return rKV(r[0], r[1]); }).join("") + '</div>' +
     '<h2 style="margin-top:16px;">የተያያዙ ህጋዊ ሰነዶች ማረጋገጫ</h2>' +
     rTable(["የሰነድ አይነት", "የማረጋገጫ ሁኔታ"], docVerifyRows, { boldCol: [1] }) +
     '<div class="rnote">ማስታወሻ፦ ከላይ የተጠቀሱት ሰነዶች በንግድ መዝገቡ ላይ የተያያዙ ሲሆን ለባንክና ለህግ አካላት ኦዲትና ማረጋገጫ ዝግጁ ናቸው።</div>';
@@ -586,8 +639,10 @@ export function buildReportHtml(data, options) {
   });
 
   var pLoanBody = '<h2>ሀ. የባንክ ብድር ፍላጎት ሞዴል</h2>' +
+    '<div class="rhl-grid">' +
     rHighlight("ብድር የሚጠየቅበት ባንክ", lc.bankName || "የኢትዮጵያ ንግድ ባንክ", "navy") +
     rHighlight("የሚጠየቀው የብድር መጠን", fmt(loanAmt), "blue") +
+    '</div>' +
     '<h3 style="font-size:11.5px;color:#1e3a8a;margin:10px 0 4px;">የገንዘብ አጠቃቀም እርምጃ (%)</h3>' +
     rTable(["የገንዘብ አጠቃቀም አላማ", "መቶኛ (%)", "የተመደበ ብር"], loanUsageRows, { boldCol: [2] }) +
     '<h2 style="margin-top:14px;">ለ. የክፍያ ወጪዎች የተከሰቱበት ቦታ ዝርዝር</h2>' +
@@ -705,108 +760,214 @@ export function buildReportHtml(data, options) {
 
   return '<!DOCTYPE html><html lang="am" dir="ltr"><head><meta charset="UTF-8">' +
     '<title>' + escapeHtml(profile.shopName || "የሱቅ ሪፖርት") + ' — የተሟላ ሪፖርትና አባሪዎች (' + TOTAL_PAGES + ' ገጾች)</title><style>' +
-    '@page{ margin: 15mm 15mm 25mm 15mm; }' +
-    '*{box-sizing:border-box;} body{font-family:"Noto Sans Ethiopic",-apple-system,"Segoe UI",Roboto,Arial,sans-serif;color:#1e293b;margin:0;font-size:12px;line-height:1.5;}' +
-    '.rannex-img{max-width:100%;max-height:820px;width:auto;height:auto;object-fit:contain;border-radius:6px;box-shadow:0 1px 4px rgba(0,0,0,0.08);margin:0 auto;display:block;}' +
-    '.rbackbar{position:sticky;top:0;z-index:10;background:#122B4A;padding:10px 14px;display:flex;align-items:center;gap:10px;}' +
-    '.rbackbar button{background:#ffffff;color:#122B4A;border:none;border-radius:8px;padding:9px 16px;font-weight:800;font-size:13px;cursor:pointer;font-family:inherit;}' +
-    '.rbackbar span{color:#cbd5e1;font-size:11px;}' +
-    '.rmain{padding:0 14mm;}' +
-    '.rpage{page-break-after:always;page-break-inside:avoid;padding:14mm 0 25mm;border:1px solid #cbd5e1;border-top:none;margin-bottom:14px;position:relative;}' +
-    '.rpage:first-child{border-top:1px solid #cbd5e1;}' +
-    '.rpage:last-child{page-break-after:auto;}' +
-    '.rpage-head{border-bottom:2px solid #122B4A;margin-bottom:10px;padding-bottom:8px;}' +
-    '.rkicker{font-size:10px;color:#94a3b8;font-weight:700;letter-spacing:.03em;}' +
-    'h1{font-size:18px;margin:2px 0 2px;color:#122B4A;}' +
-    '.rsub{font-size:10px;color:#64748b;}' +
-    'h2{font-size:13px;color:#122B4A;margin:14px 0 6px;border-left:3px solid #3B82F6;padding-left:6px;}' +
-    'table{width:100%;border-collapse:collapse;font-size:10.5px;margin:4px 0 10px;border:1px solid #cbd5e1;page-break-inside:auto;}' +
+    '@page{ size: A4; margin: 10mm; }' +
+    '*{box-sizing:border-box;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}' +
+    'html,body{background-color:#ffffff!important;color:#000000!important;margin:0;padding:0;font-family:"Noto Sans Ethiopic",-apple-system,"Segoe UI",Roboto,Arial,sans-serif;font-size:11.5px;line-height:1.5;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}' +
+    '.rannex-img{max-width:100%;max-height:720px;width:auto;height:auto;object-fit:contain;border-radius:6px;box-shadow:0 1px 4px rgba(0,0,0,0.08);margin:0 auto;display:block;page-break-inside:avoid;break-inside:avoid;}' +
+    '.rmain{padding:14px 12px;max-width:920px;margin:0 auto;background:#ffffff;color:#000000;}' +
+    '.rpage{page-break-inside:avoid;break-inside:avoid;page-break-after:always;break-after:page;padding:20px 22px 20px;border:1px solid #cbd5e1;border-radius:10px;margin-bottom:24px;background:#ffffff;box-shadow:0 1px 4px rgba(0,0,0,0.04);color:#000000;}' +
+    '.rpage:last-child{page-break-after:auto;break-after:auto;margin-bottom:0;}' +
+    '.rpage-head{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #1e3a8a;margin-bottom:14px;padding-bottom:10px;page-break-inside:avoid;break-inside:avoid;}' +
+    '.rpage-badge{display:inline-block;padding:2px 10px;border-radius:12px;background:#1e3a8a;color:#ffffff;font-size:10px;font-weight:800;letter-spacing:0.5px;}' +
+    'h1{font-size:17px;margin:0 0 3px;color:#1e3a8a;font-weight:900;letter-spacing:0.2px;}' +
+    '.rsub{font-size:10.5px;color:#1a1a1a;font-weight:600;}' +
+    'h2{font-size:12.5px;color:#1e3a8a;margin:16px 0 8px;border-left:3.5px solid #2563eb;padding-left:8px;font-weight:800;page-break-inside:avoid;break-inside:avoid;page-break-after:avoid;break-after:avoid;}' +
+    '.rhl-grid{display:grid;grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));gap:10px;margin:8px 0 14px;page-break-inside:avoid;break-inside:avoid;}' +
+    '.rhl{background:#f8fafc;border-radius:8px;padding:10px 12px;border:1px solid #cbd5e1;border-left:4px solid #cbd5e1;page-break-inside:avoid;break-inside:avoid;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}' +
+    '.rhl.blue{border-left-color:#3b82f6;background:#f0f7ff;} .rhl.green{border-left-color:#10b981;background:#f0fdf4;} .rhl.red{border-left-color:#ef4444;background:#fef2f2;} .rhl.amber{border-left-color:#f59e0b;background:#fffbeb;} .rhl.navy{border-left-color:#1e3a8a;background:#f1f5f9;}' +
+    '.rhl-label{font-size:10px;color:#1a1a1a;font-weight:700;margin-bottom:3px;}' +
+    '.rhl-value{font-size:13.5px;font-weight:900;color:#000000;line-height:1.2;}' +
+    '.rkv-grid{display:grid;grid-template-columns:repeat(auto-fit, minmax(260px, 1fr));gap:8px 14px;margin:8px 0 12px;page-break-inside:avoid;break-inside:avoid;}' +
+    '.rkv-row{display:flex;justify-content:space-between;align-items:baseline;padding:6px 8px;background:#f8fafc;border-radius:6px;border:1px solid #cbd5e1;font-size:11px;page-break-inside:avoid;break-inside:avoid;color:#000000;}' +
+    '.rkv-key{color:#1a1a1a;font-weight:700;margin-right:8px;flex-shrink:0;}' +
+    '.rkv-val{color:#000000;font-weight:800;text-align:right;word-break:break-word;}' +
+    'table{width:100%;border-collapse:collapse;font-size:11px;margin:8px 0 12px;border:1px solid #cbd5e1;page-break-inside:auto;break-inside:auto;}' +
     'thead{display:table-header-group;}' +
     'tbody{display:table-row-group;}' +
-    'th{background:#122B4A;color:#fff;padding:6px 5px;text-align:right;font-weight:700;border:1px solid #1e3a5f;}' +
-    'td{padding:5px;border:1px solid #e2e8f0;}' +
-    'tr{page-break-inside:avoid;page-break-after:auto;}' +
-    'tr:nth-child(even) td{background:#fafbfc;}' +
-    '.rbold{font-weight:700;}' +
-    '.rempty{text-align:center;color:#94a3b8;padding:10px;}' +
-    '.rhl{display:inline-block;min-width:44%;background:#f8fafc;border-radius:8px;padding:8px 10px;margin:3px 6px 3px 0;vertical-align:top;border:1px solid #e2e8f0;border-left:4px solid #cbd5e1;}' +
-    '.rhl.blue{border-left-color:#3b82f6;} .rhl.green{border-left-color:#10a34a;} .rhl.red{border-left-color:#dc2626;} .rhl.amber{border-left-color:#f59e0b;} .rhl.navy{border-left-color:#122B4A;}' +
-    '.rhl-label{font-size:9.5px;color:#64748b;} .rhl-value{font-size:13px;font-weight:800;margin-top:2px;}' +
-    '.rkv{display:flex;justify-content:space-between;font-size:11px;padding:5px 4px;border:1px solid #f1f5f9;border-bottom:1px dashed #e2e8f0;}' +
-    '.rnote{font-size:9.5px;color:#94a3b8;margin:6px 0;}' +
-    '.rpara{font-size:11px;line-height:1.6;color:#334155;}' +
-    '.rgoal-ok{background:#f0fdf4;border:1px solid #bbf7d0;color:#166534;font-weight:700;padding:8px;border-radius:8px;margin-top:8px;text-align:center;font-size:11px;}' +
-    '.rgoal-warn{background:#fef2f2;border:1px solid #fecaca;color:#991b1b;font-weight:700;padding:8px;border-radius:8px;margin-top:8px;text-align:center;font-size:11px;}' +
-    '.rfootnote{font-size:9px;color:#94a3b8;margin-top:14px;text-align:center;}' +
-    '@media print{ .rbackbar{display:none;} .rmain{padding:0;} .rpage{border:none;padding:0;margin-bottom:0;} }' +
+    'th{background:#1e3a8a!important;color:#ffffff!important;padding:8px 6px;text-align:right;font-weight:800;border:1px solid #1e3a8a;font-size:10.5px;letter-spacing:0.2px;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}' +
+    'th:first-child{text-align:left;}' +
+    'td{padding:6px 7px;border:1px solid #cbd5e1;text-align:right;color:#000000;}' +
+    'td:first-child{text-align:left;}' +
+    'tr{page-break-inside:avoid;break-inside:avoid;page-break-after:auto;break-after:auto;}' +
+    'tr:nth-child(even) td{background:#f8fafc;}' +
+    '.rbold{font-weight:800;color:#000000;}' +
+    '.rempty{text-align:center!important;color:#64748b;padding:12px;font-style:italic;}' +
+    '.rnote{font-size:10px;color:#1a1a1a;margin:8px 0;line-height:1.45;page-break-inside:avoid;break-inside:avoid;}' +
+    '.rpara{font-size:11px;line-height:1.65;color:#000000;margin:6px 0 12px;page-break-inside:avoid;break-inside:avoid;}' +
+    '.rgoal-ok{background:#f0fdf4!important;border:1px solid #bbf7d0;color:#166534!important;font-weight:800;padding:10px 14px;border-radius:8px;margin-top:10px;text-align:center;font-size:11.5px;page-break-inside:avoid;break-inside:avoid;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}' +
+    '.rgoal-warn{background:#fef2f2!important;border:1px solid #fecaca;color:#991b1b!important;font-weight:800;padding:10px 14px;border-radius:8px;margin-top:10px;text-align:center;font-size:11.5px;page-break-inside:avoid;break-inside:avoid;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}' +
+    '.rfootnote{font-size:9.5px;color:#1a1a1a;margin-top:14px;text-align:center;page-break-inside:avoid;break-inside:avoid;}' +
+    '@media print{' +
+      '*{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}' +
+      'html,body{background-color:#ffffff!important;color:#000000!important;font-size:11px;height:auto!important;min-height:auto!important;max-height:none!important;overflow:visible!important;position:static!important;}' +
+      '.report-overlay-bar,.rbackbar,.no-print,button,nav,header,footer{display:none!important;visibility:hidden!important;}' +
+      '#printable-report,#printable-report *,.rmain,.rmain *,.rpage,.rpage *{visibility:visible!important;color:#000000!important;}' +
+      'th{color:#ffffff!important;background-color:#1e3a8a!important;}' +
+      '.rmain{padding:0!important;max-width:100%!important;margin:0!important;width:100%!important;height:auto!important;min-height:auto!important;overflow:visible!important;}' +
+      '.rpage{border:none!important;box-shadow:none!important;padding:0 0 18px 0!important;margin-bottom:0!important;page-break-inside:avoid!important;break-inside:avoid!important;page-break-after:always!important;break-after:page!important;height:auto!important;min-height:auto!important;overflow:visible!important;}' +
+      '.rpage:last-child{page-break-after:auto!important;break-after:auto!important;}' +
+      '.rhl{border:1px solid #cbd5e1!important;}' +
+      '.rkv-row{border:1px solid #cbd5e1!important;background:#ffffff!important;}' +
+    '}' +
     '</style></head><body>' +
-    '<div class="rbackbar"><button id="rBackBtn">← ወደ ዋናው ገጽ ተመለስ / Back</button><span>ይህ ትር ማተም/ማጋራት ካልፈለጉ ዘግተው ወደ አፑ ይመለሱ</span></div>' +
     '<div id="printable-report" class="rmain">' + pages + '</div>' +
-    '<script>(function(){' +
-      'var btn=document.getElementById("rBackBtn");' +
-      'btn.addEventListener("click",function(){' +
-        'if(window.opener&&!window.opener.closed){try{window.opener.focus();}catch(e){}}' +
-        'try{window.close();}catch(e){}' +
-        'setTimeout(function(){' +
-          'if(!window.closed){btn.textContent="✕ እባክዎ ይህን ትር በእጅ ይዝጉ";btn.disabled=true;btn.style.opacity=".6";}' +
-        '},350);' +
-      '});' +
-    '})();<\/script>' +
     '</body></html>';
 }
 
-export function showReportPrintOverlay(html, showToast) {
+export function downloadHtmlAsPdf(html, title, showToast, btnEl, frameEl) {
+  var originalText = btnEl ? btnEl.textContent : "";
+  if (btnEl) {
+    btnEl.disabled = true;
+    btnEl.textContent = "⏳ ፒዲኤፍ እየተዘጋጀ ነው...";
+    btnEl.style.opacity = "0.7";
+  }
+  if (showToast) showToast("⏳ ፒዲኤፍ እየተዘጋጀ ነው... እባክዎ ይጠብቁ");
+
+  var cleanFileName = (title || "Shop_Report").replace(/[^a-zA-Z0-9_\u1200-\u137F]/g, "_") + "_" + (new Date().toISOString().slice(0, 10)) + ".pdf";
+
+  function finishSuccess() {
+    if (btnEl) {
+      btnEl.disabled = false;
+      btnEl.textContent = originalText;
+      btnEl.style.opacity = "1";
+    }
+    if (showToast) showToast("✓ ፒዲኤፍ ፋይሉ በተሳካ ሁኔታ ወርዷል");
+  }
+
+  function finishFail(err) {
+    console.error("PDF generation error:", err);
+    if (btnEl) {
+      btnEl.disabled = false;
+      btnEl.textContent = originalText;
+      btnEl.style.opacity = "1";
+    }
+    // Fallback to print
+    try {
+      if (frameEl && frameEl.contentWindow) {
+        frameEl.contentWindow.focus();
+        frameEl.contentWindow.print();
+      } else {
+        window.print();
+      }
+    } catch (e) {}
+    if (showToast) showToast("⚠️ ፒዲኤፍ ማውረድ አልተቻለም — የማተሚያ መስኮቱ ተከፍቷል");
+  }
+
+  if (typeof window.html2pdf !== "function") {
+    finishFail("html2pdf library is not loaded");
+    return;
+  }
+
+  try {
+    // Create a fully rendered, visible container with dynamic height to guarantee 100% full content capture
+    var tempContainer = document.createElement("div");
+    tempContainer.className = "report-container pdf-container";
+    tempContainer.style.position = "fixed";
+    tempContainer.style.left = "0px";
+    tempContainer.style.top = "0px";
+    tempContainer.style.width = "794px";
+    tempContainer.style.height = "auto";
+    tempContainer.style.minHeight = "100%";
+    tempContainer.style.background = "#ffffff";
+    tempContainer.style.color = "#000000";
+    tempContainer.style.zIndex = "999999";
+    tempContainer.style.opacity = "1";
+    tempContainer.style.visibility = "visible";
+    tempContainer.style.pointerEvents = "none";
+    tempContainer.innerHTML = html;
+    document.body.appendChild(tempContainer);
+
+    var targetElement = tempContainer.querySelector("#printable-report") || tempContainer;
+
+    var opt = {
+      margin: [6, 6, 6, 6],
+      filename: cleanFileName,
+      image: { type: "jpeg", quality: 0.98 },
+      html2canvas: {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        scrollX: 0,
+        scrollY: 0,
+        backgroundColor: "#ffffff"
+      },
+      jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+      pagebreak: { mode: ["avoid-all", "css", "legacy"] }
+    };
+
+    // 500ms Print Delay to guarantee all data, base64 images, and fonts are completely loaded
+    setTimeout(function () {
+      try {
+        window.html2pdf().set(opt).from(targetElement).save().then(function () {
+          if (tempContainer && tempContainer.parentNode) tempContainer.parentNode.removeChild(tempContainer);
+          finishSuccess();
+        }).catch(function (err) {
+          if (tempContainer && tempContainer.parentNode) tempContainer.parentNode.removeChild(tempContainer);
+          finishFail(err);
+        });
+      } catch (err) {
+        if (tempContainer && tempContainer.parentNode) tempContainer.parentNode.removeChild(tempContainer);
+        finishFail(err);
+      }
+    }, 500);
+  } catch (err) {
+    finishFail(err);
+  }
+}
+
+export function showReportPrintOverlay(html, showToast, title) {
   var overlay = document.createElement("div");
   overlay.className = "report-overlay";
   var bar = document.createElement("div");
   bar.className = "report-overlay-bar";
+
   var backBtn = document.createElement("button");
   backBtn.className = "btn btn-outline btn-sm";
-  backBtn.textContent = "← ተመለስ";
-  var printBtn = document.createElement("button");
-  printBtn.className = "btn btn-primary btn-sm";
-  printBtn.textContent = "🖨️ አትም / Save as PDF";
-  backBtn.addEventListener("click", function () { overlay.remove(); });
+  backBtn.style.background = "#ffffff";
+  backBtn.style.color = "#122B4A";
+  backBtn.style.fontWeight = "800";
+  backBtn.textContent = "← ወደ ዋናው ገጽ ተመለስ";
+
+  var dlBtn = document.createElement("button");
+  dlBtn.className = "btn btn-emerald btn-sm";
+  dlBtn.style.background = "#10b981";
+  dlBtn.style.color = "#ffffff";
+  dlBtn.style.fontWeight = "800";
+  dlBtn.textContent = "📥 አውርድ (PDF)";
+
+  function cleanup() {
+    if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
+  }
+
+  backBtn.addEventListener("click", cleanup);
+
   var frame = document.createElement("iframe");
   frame.className = "report-overlay-frame";
-  frame.setAttribute("title", "11-page report");
-  printBtn.addEventListener("click", function () {
-    try {
-      frame.contentWindow.focus();
-      frame.contentWindow.print();
-    } catch (e) {
-      if (showToast) showToast("⚠️ ማተም አልተቻለም");
-    }
+  frame.setAttribute("title", title || "የሱቅ ሪፖርት");
+
+  dlBtn.addEventListener("click", function () {
+    downloadHtmlAsPdf(html, title, showToast, dlBtn, frame);
   });
+
   bar.appendChild(backBtn);
-  bar.appendChild(printBtn);
+  bar.appendChild(dlBtn);
   overlay.appendChild(bar);
   overlay.appendChild(frame);
   document.body.appendChild(overlay);
-  frame.srcdoc = html;
-  if (showToast) showToast("✓ ዝግጁ ነው — 'አትም / Save as PDF' ይጫኑ");
+
+  try {
+    var blob = new Blob([html], { type: "text/html;charset=utf-8" });
+    frame.src = URL.createObjectURL(blob);
+  } catch (e) {
+    frame.srcdoc = html;
+  }
+
+  if (showToast) showToast("✓ ሪፖርቱ ተዘጋጅቷል — 'አውርድ (PDF)' ይጫኑ");
 }
 
 export function exportPrintableReport(data, showToast, options) {
   var html = buildReportHtml(data, options);
-  var win = null;
-  try { win = window.open("", "_blank"); } catch (e) { win = null; }
-  if (!win || win.closed || typeof win.document === "undefined") {
-    showReportPrintOverlay(html, showToast);
-    return;
-  }
-  try {
-    win.document.open();
-    win.document.write(html);
-    win.document.close();
-    var triggered = false;
-    function triggerPrint() { if (triggered) return; triggered = true; try { win.focus(); win.print(); } catch (e) {} }
-    win.addEventListener("load", function () { setTimeout(triggerPrint, 250); });
-    setTimeout(triggerPrint, 900);
-    if (showToast) showToast("✓ ሪፖርቱ ከአባሪዎች ጋር ተዘጋጅቷል — 'Save as PDF' ወይም 'Share' ይምረጡ");
-  } catch (e) {
-    showReportPrintOverlay(html, showToast);
-  }
+  showReportPrintOverlay(html, showToast, "የተሟላ_የሱቅ_ሪፖርት");
 }
 
 /**
@@ -840,29 +1001,27 @@ export function exportPrintableReceipt(data, sale, showToast) {
   }).join("");
 
   var html = '<!DOCTYPE html><html lang="am"><head><meta charset="UTF-8"><title>ደረሰኝ - ' + escapeHtml(sale.customer || "ሽያጭ") + '</title><style>' +
-    '@page{ margin: 15mm 15mm 25mm 15mm; }' +
-    '*{box-sizing:border-box;} body{font-family:"Noto Sans Ethiopic",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;color:#0f172a;margin:0;padding:0;font-size:11.5px;background:#f8fafc;line-height:1.35;}' +
-    '.receipt-container{max-width:760px;margin:8px auto;background:#fff;padding:18px 22px 22px;border-radius:10px;box-shadow:0 1px 6px rgba(0,0,0,0.06);position:relative;border:1px solid #cbd5e1;page-break-inside:auto;}' +
-    '.header{display:flex;justify-content:space-between;align-items:center;padding-bottom:10px;}' +
-    '.header-divider{height:2.5px;background:#1e3a8a;width:100%;margin-bottom:12px;border-radius:2px;}' +
-    'table{width:100%;border-collapse:collapse;margin:8px 0 14px;font-size:11px;page-break-inside:auto;}' +
+    '@page{ size: A4; margin: 10mm; }' +
+    '*{box-sizing:border-box;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}' +
+    'body{font-family:"Noto Sans Ethiopic",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;color:#0f172a;margin:0;padding:0;font-size:11.5px;background:#f8fafc;line-height:1.35;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}' +
+    '.receipt-container{max-width:760px;margin:8px auto;background:#fff;padding:18px 22px 22px;border-radius:10px;box-shadow:0 1px 6px rgba(0,0,0,0.06);position:relative;border:1px solid #cbd5e1;page-break-inside:avoid;break-inside:avoid;}' +
+    '.header{display:flex;justify-content:space-between;align-items:center;padding-bottom:10px;page-break-inside:avoid;break-inside:avoid;}' +
+    '.header-divider{height:2.5px;background:#1e3a8a!important;width:100%;margin-bottom:12px;border-radius:2px;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}' +
+    'table{width:100%;border-collapse:collapse;margin:8px 0 14px;font-size:11px;page-break-inside:auto;break-inside:auto;}' +
     'thead{display:table-header-group;}' +
     'tbody{display:table-row-group;}' +
-    'th{background:#1e3a8a;color:#fff;padding:7px 8px;font-size:11px;font-weight:800;text-align:left;border:1px solid #1e3a8a;letter-spacing:0.3px;}' +
+    'th{background:#1e3a8a!important;color:#fff!important;padding:7px 8px;font-size:11px;font-weight:800;text-align:left;border:1px solid #1e3a8a;letter-spacing:0.3px;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}' +
     'td{padding:6px 8px;}' +
-    'tr{page-break-inside:avoid;page-break-after:auto;}' +
+    'tr{page-break-inside:avoid;break-inside:avoid;page-break-after:auto;break-after:auto;}' +
     'tbody tr:nth-child(even){background:#f8fafc;}' +
-    '.bottom-layout{display:grid;grid-template-columns:1.2fr 1fr;gap:16px;align-items:flex-start;margin-top:10px;page-break-inside:avoid;}' +
-    '.total-box{border:1.5px solid #cbd5e1;border-radius:8px;padding:10px 14px;background:#f8fafc;}' +
+    '.bottom-layout{display:grid;grid-template-columns:1.2fr 1fr;gap:16px;align-items:flex-start;margin-top:10px;page-break-inside:avoid;break-inside:avoid;}' +
+    '.total-box{border:1.5px solid #cbd5e1;border-radius:8px;padding:10px 14px;background:#f8fafc;page-break-inside:avoid;break-inside:avoid;}' +
     '.total-row{display:flex;justify-content:space-between;padding:3.5px 0;font-size:11.5px;border-bottom:1px solid #e2e8f0;}' +
     '.total-row:last-child{border-bottom:none;}' +
     '.total-row.main{font-weight:900;font-size:12.5px;border-top:1.5px solid #cbd5e1;border-bottom:none;margin-top:4px;padding-top:6px;color:#1e3a8a;}' +
-    '.auth-stamp-block{border:1.5px dashed #94a3b8;border-radius:8px;padding:8px 12px;background:#ffffff;display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:105px;page-break-inside:avoid;}' +
-    '@media print{ html,body{height:auto;margin:0!important;padding:0!important;background:#fff;} .receipt-container{max-width:100%;margin:0;box-shadow:none;border:none;padding:0 0 20mm 0;} .no-print{display:none!important;} }' +
+    '.auth-stamp-block{border:1.5px dashed #94a3b8;border-radius:8px;padding:8px 12px;background:#ffffff;display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:105px;page-break-inside:avoid;break-inside:avoid;}' +
+    '@media print{ *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;} html,body{height:auto!important;min-height:auto!important;overflow:visible!important;margin:0!important;padding:0!important;background:#ffffff!important;color:#000000!important;} body, .pdf-container{background-color:#ffffff!important;color:#000000!important;} #printable-report, #printable-report *{visibility:visible!important;color:#000000!important;} th{color:#ffffff!important;background-color:#1e3a8a!important;} .receipt-container{max-width:100%!important;margin:0!important;box-shadow:none!important;border:none!important;padding:0!important;height:auto!important;overflow:visible!important;page-break-inside:avoid!important;break-inside:avoid!important;} .report-overlay-bar,.rbackbar,.no-print,button,nav,header,footer{display:none!important;visibility:hidden!important;} }' +
     '</style></head><body>' +
-    '<div class="no-print" style="max-width:760px;margin:8px auto;display:flex;gap:10px;justify-content:flex-end;">' +
-      '<button onclick="window.print()" style="background:#1e3a8a;color:#fff;border:none;padding:7px 16px;border-radius:6px;cursor:pointer;font-weight:800;font-size:12px;display:flex;align-items:center;gap:6px;">🖨️ ደረሰኝ አትም / Save PDF</button>' +
-    '</div>' +
     '<div id="printable-report" class="receipt-container">' +
       '<div class="header">' +
         '<div style="display:flex;align-items:center;gap:14px;">' +
@@ -942,19 +1101,17 @@ export function exportPrintableFreightReport(data, shipment, showToast) {
   }).join("");
 
   var html = '<!DOCTYPE html><html lang="am"><head><meta charset="UTF-8"><title>የጭነት ሪፖርት - ' + escapeHtml(shipment.freightCompany || "ጭነት") + '</title><style>' +
-    '@page{ margin: 15mm 15mm 25mm 15mm; }' +
-    '*{box-sizing:border-box;} body{font-family:"Noto Sans Ethiopic",-apple-system,sans-serif;color:#1e293b;margin:0;font-size:11.5px;background:#f8fafc;}' +
-    '.report-box{max-width:850px;margin:20px auto;background:#fff;padding:30px 36px 35mm;border-radius:12px;border:1px solid #cbd5e1;position:relative;min-height:260mm;page-break-inside:auto;}' +
-    'table{width:100%;border-collapse:collapse;margin:14px 0;font-size:11px;page-break-inside:auto;}' +
+    '@page{ size: A4; margin: 10mm; }' +
+    '*{box-sizing:border-box;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}' +
+    'body{font-family:"Noto Sans Ethiopic",-apple-system,sans-serif;color:#1e293b;margin:0;font-size:11.5px;background:#f8fafc;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}' +
+    '.report-box{max-width:850px;margin:16px auto;background:#fff;padding:24px 28px;border-radius:12px;border:1px solid #cbd5e1;position:relative;page-break-inside:avoid;break-inside:avoid;}' +
+    'table{width:100%;border-collapse:collapse;margin:14px 0;font-size:11px;page-break-inside:auto;break-inside:auto;}' +
     'thead{display:table-header-group;}' +
     'tbody{display:table-row-group;}' +
-    'th{background:#122B4A;color:#fff;padding:7px;text-align:left;border:1px solid #122B4A;}' +
-    'tr{page-break-inside:avoid;page-break-after:auto;}' +
-    '@media print{ body{background:#fff;} .report-box{margin:0;box-shadow:none;border:none;padding:0 0 25mm 0;} .no-print{display:none;} }' +
+    'th{background:#122B4A!important;color:#fff!important;padding:7px;text-align:left;border:1px solid #122B4A;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}' +
+    'tr{page-break-inside:avoid;break-inside:avoid;page-break-after:auto;break-after:auto;}' +
+    '@media print{ *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;} html,body{height:auto!important;min-height:auto!important;overflow:visible!important;background:#ffffff!important;color:#000000!important;} body, .pdf-container{background-color:#ffffff!important;color:#000000!important;} #printable-report, #printable-report *{visibility:visible!important;color:#000000!important;} th{color:#ffffff!important;background-color:#122B4A!important;} .report-box{margin:0!important;box-shadow:none!important;border:none!important;padding:0!important;height:auto!important;overflow:visible!important;page-break-inside:avoid!important;break-inside:avoid!important;} .report-overlay-bar,.rbackbar,.no-print,button,nav,header,footer{display:none!important;visibility:hidden!important;} }' +
     '</style></head><body>' +
-    '<div class="no-print" style="max-width:850px;margin:12px auto;display:flex;gap:10px;justify-content:flex-end;">' +
-      '<button onclick="window.print()" style="background:#122B4A;color:#fff;border:none;padding:8px 18px;border-radius:8px;cursor:pointer;font-weight:700;">🖨️ የጭነት ሪፖርት አትም / Save PDF</button>' +
-    '</div>' +
     '<div id="printable-report" class="report-box">' +
       '<div style="border-bottom:2px solid #122B4A;padding-bottom:12px;margin-bottom:14px;display:flex;justify-content:space-between;">' +
         '<div>' +
@@ -1012,19 +1169,17 @@ export function exportPrintableInventorySummary(data, showToast) {
   }).join("");
 
   var html = '<!DOCTYPE html><html lang="am"><head><meta charset="UTF-8"><title>የዕቃ ክምችትና የእሴት ማጠቃለያ ሪፖርት</title><style>' +
-    '@page{ margin: 15mm 15mm 25mm 15mm; }' +
-    '*{box-sizing:border-box;} body{font-family:"Noto Sans Ethiopic",-apple-system,sans-serif;color:#1e293b;margin:0;font-size:11.5px;background:#f8fafc;}' +
-    '.report-box{max-width:850px;margin:20px auto;background:#fff;padding:30px 36px 35mm;border-radius:12px;border:1px solid #cbd5e1;position:relative;min-height:260mm;page-break-inside:auto;}' +
-    'table{width:100%;border-collapse:collapse;margin:14px 0;font-size:11px;page-break-inside:auto;}' +
+    '@page{ size: A4; margin: 10mm; }' +
+    '*{box-sizing:border-box;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}' +
+    'body{font-family:"Noto Sans Ethiopic",-apple-system,sans-serif;color:#1e293b;margin:0;font-size:11.5px;background:#f8fafc;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}' +
+    '.report-box{max-width:850px;margin:16px auto;background:#fff;padding:24px 28px;border-radius:12px;border:1px solid #cbd5e1;position:relative;page-break-inside:avoid;break-inside:avoid;}' +
+    'table{width:100%;border-collapse:collapse;margin:14px 0;font-size:11px;page-break-inside:auto;break-inside:auto;}' +
     'thead{display:table-header-group;}' +
     'tbody{display:table-row-group;}' +
-    'th{background:#122B4A;color:#fff;padding:7px;text-align:left;border:1px solid #122B4A;}' +
-    'tr{page-break-inside:avoid;page-break-after:auto;}' +
-    '@media print{ body{background:#fff;} .report-box{margin:0;box-shadow:none;border:none;padding:0 0 25mm 0;} .no-print{display:none;} }' +
+    'th{background:#122B4A!important;color:#fff!important;padding:7px;text-align:left;border:1px solid #122B4A;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}' +
+    'tr{page-break-inside:avoid;break-inside:avoid;page-break-after:auto;break-after:auto;}' +
+    '@media print{ *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;} html,body{height:auto!important;min-height:auto!important;overflow:visible!important;background:#ffffff!important;color:#000000!important;} body, .pdf-container{background-color:#ffffff!important;color:#000000!important;} #printable-report, #printable-report *{visibility:visible!important;color:#000000!important;} th{color:#ffffff!important;background-color:#122B4A!important;} .report-box{margin:0!important;box-shadow:none!important;border:none!important;padding:0!important;height:auto!important;overflow:visible!important;page-break-inside:avoid!important;break-inside:avoid!important;} .report-overlay-bar,.rbackbar,.no-print,button,nav,header,footer{display:none!important;visibility:hidden!important;} }' +
     '</style></head><body>' +
-    '<div class="no-print" style="max-width:850px;margin:12px auto;display:flex;gap:10px;justify-content:flex-end;">' +
-      '<button onclick="window.print()" style="background:#122B4A;color:#fff;border:none;padding:8px 18px;border-radius:8px;cursor:pointer;font-weight:700;">🖨️ የክምችት ሪፖርት አትም / Save PDF</button>' +
-    '</div>' +
     '<div id="printable-report" class="report-box">' +
       '<div style="border-bottom:2px solid #122B4A;padding-bottom:12px;margin-bottom:14px;display:flex;justify-content:space-between;">' +
         '<div>' +
@@ -1051,22 +1206,5 @@ export function exportPrintableInventorySummary(data, showToast) {
 }
 
 function printHtmlDocument(html, title, showToast) {
-  var win = null;
-  try { win = window.open("", "_blank"); } catch (e) { win = null; }
-  if (!win || win.closed || typeof win.document === "undefined") {
-    showReportPrintOverlay(html, showToast);
-    return;
-  }
-  try {
-    win.document.open();
-    win.document.write(html);
-    win.document.close();
-    var triggered = false;
-    function triggerPrint() { if (triggered) return; triggered = true; try { win.focus(); win.print(); } catch (e) {} }
-    win.addEventListener("load", function () { setTimeout(triggerPrint, 250); });
-    setTimeout(triggerPrint, 900);
-    if (showToast) showToast("✓ " + (title || "ሰነዱ") + " ተዘጋጅቷል — 'Save as PDF' ይምረጡ");
-  } catch (e) {
-    showReportPrintOverlay(html, showToast);
-  }
+  showReportPrintOverlay(html, showToast, title || "ሰነድ");
 }
